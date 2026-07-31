@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "devices": {
+      "$deviceId": {
+        ".read": "auth != null && (!data.exists() || !data.child('claimed_by').exists() || data.child('claimed_by').val() === auth.uid)",
+        ".write": "auth != null && data.exists() && (!data.child('claimed_by').exists() || data.child('claimed_by').val() === auth.uid)"
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read":  "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
