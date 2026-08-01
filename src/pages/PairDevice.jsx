@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
-import { ref, get, runTransaction, update } from 'firebase/database';
+import { ref, get, update } from 'firebase/database';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -65,35 +65,24 @@ export default function PairDevice() {
     try {
       const deviceRef = ref(db, `devices/${code}`);
 
-      // Perform transaction to claim device atomically
-      const result = await runTransaction(deviceRef, (currentData) => {
-        if (currentData === null) {
-          // Abort: Device does not exist in provisioned DB node
-          return;
-        }
-        if (currentData.claimed_by) {
-          // Abort: Device already claimed
-          return;
-        }
-        // Claim the device
-        return {
-          ...currentData,
-          claimed_by: user.uid,
-          claimed_at: Date.now(),
-        };
-      });
-
-      if (!result.committed) {
-        // Find the reason
-        const snap = await get(deviceRef);
-        if (!snap.exists()) {
-          throw new Error('not-found');
-        } else {
-          throw new Error('already-claimed');
-        }
+      // Step 1: Read the device node
+      const snap = await get(deviceRef);
+      if (!snap.exists()) {
+        throw new Error('not-found');
       }
 
-      // Claim successful. Create user's device preferences & names
+      const deviceData = snap.val();
+      if (deviceData.claimed_by) {
+        throw new Error('already-claimed');
+      }
+
+      // Step 2: Claim the device (write rule enforces server-side constraint)
+      await update(deviceRef, {
+        claimed_by: user.uid,
+        claimed_at: Date.now(),
+      });
+
+      // Step 3: Create user's device preferences & names
       const userDeviceRef = ref(db, `users/${user.uid}/devices/${code}`);
       await update(userDeviceRef, {
         name: 'Smart Multi-Plug',
@@ -113,9 +102,9 @@ export default function PairDevice() {
       } else if (err.message === 'already-claimed') {
         setError('This device is already paired to another account. Contact support if this is your device.');
       } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
-        setError('Device not found or not provisioned in the database yet.');
+        setError('Permission denied. Make sure you are logged in and the device is provisioned.');
       } else {
-        setError('Something went wrong. Please check your connection and try again.');
+        setError(`Something went wrong: ${err.message}`);
       }
     } finally {
       setLoading(false);
