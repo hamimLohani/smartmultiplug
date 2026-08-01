@@ -49,11 +49,18 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
     <div className={`plug-card ${isOn ? 'on' : ''} ${disabled ? 'disabled' : ''}`}
          style={{ opacity: disabled ? 0.7 : 1 }}>
 
-      {/* Header row */}
-      <div className="plug-card-header">
-        <div className="plug-number-badge">P{plugNum}</div>
+      {/* Top Row: Plug Number and Status Dot */}
+      <div className="plug-card-top">
+        <span className="plug-number-label">Outlet {plugNum}</span>
+        <div className="plug-status-indicator">
+          <span className="plug-status-text">{isOn ? 'Active' : 'Idle'}</span>
+          <div className="plug-status-dot" />
+        </div>
+      </div>
 
-        <div className="plug-name-area" style={{ marginLeft: 10 }}>
+      {/* Middle Row: Name & Rename */}
+      <div className="plug-card-mid">
+        <div className="plug-name-area">
           {editing ? (
             <input
               ref={inputRef}
@@ -63,7 +70,6 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
               onBlur={commitEdit}
               onKeyDown={handleKeyDown}
               maxLength={20}
-              style={{ flex: 1 }}
             />
           ) : (
             <span className="plug-name" onClick={startEdit} title="Tap to rename">
@@ -71,30 +77,25 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
             </span>
           )}
         </div>
-
-        {editing ? (
-          <button className="plug-edit-btn" onClick={commitEdit} aria-label="Save name">
-            <CheckIcon />
-          </button>
-        ) : (
-          <button className="plug-edit-btn" onClick={startEdit} aria-label="Rename plug">
-            <EditIcon />
-          </button>
-        )}
-
-        <div className="plug-status-dot" style={{ marginLeft: 8 }} />
+        <button
+          className="plug-edit-btn"
+          onClick={editing ? commitEdit : startEdit}
+          aria-label={editing ? 'Save name' : 'Rename plug'}
+        >
+          {editing ? <CheckIcon /> : <EditIcon />}
+        </button>
       </div>
 
-      {/* Toggle row */}
-      <div className="plug-card-body">
-        <div>
-          <p className="plug-state-label">
+      {/* Bottom Row: State Label & Toggle Switch */}
+      <div className="plug-card-bottom">
+        <div className="plug-state-info">
+          <span className="plug-state-label">
             {isPending ? 'Updating…' : isOn ? 'On' : 'Off'}
-          </p>
+          </span>
           {hasFailed && (
-            <p className="plug-pending-note">
-              ⚠ Device didn't respond
-            </p>
+            <span className="plug-pending-note">
+              ⚠ Unresponsive
+            </span>
           )}
         </div>
 

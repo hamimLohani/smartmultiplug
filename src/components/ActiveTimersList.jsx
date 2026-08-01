@@ -72,9 +72,6 @@ export default function ActiveTimersList({ timers, timerStates, onDelete }) {
     <div className="scroll-list">
       {timers.map((timer) => {
         const isDelay = timer.type === 'delay';
-        const label = isDelay
-          ? `${timer.plugLabel || `Plug ${timer.plugNum}`} — Turn ${timer.action} in`
-          : formatScheduleLabel(timer);
 
         return (
           <div key={timer.id} className="active-timer-item">
@@ -82,16 +79,41 @@ export default function ActiveTimersList({ timers, timerStates, onDelete }) {
               <div className={`active-timer-icon ${isDelay ? 'delay' : 'schedule'}`}>
                 {isDelay ? '⏱' : '📅'}
               </div>
-              <div className="active-timer-text">
-                <p className="active-timer-desc">{label}</p>
-                {isDelay && timer.remainingSeconds !== undefined && (
-                  <CountdownTimer seconds={timer.remainingSeconds} />
-                )}
-                {!isDelay && (
-                  <span style={{ fontSize: 12, color: 'var(--clr-text-subtle)' }}>
-                    {timer.enabled ? 'Active' : 'Disabled'}
+              <div className="active-timer-text" style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span className="active-timer-desc" style={{ fontWeight: 600 }}>
+                    {timer.plugLabel || `Plug ${timer.plugNum}`}
                   </span>
-                )}
+                  <span className={`badge ${timer.action === 'ON' ? 'badge-green' : 'badge-red'}`} style={{ fontSize: 10, padding: '1px 6px', lineHeight: 1 }}>
+                    {timer.action === 'ON' ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+                  {isDelay ? (
+                    <>
+                      <span style={{ fontSize: 12, color: 'var(--clr-text-muted)' }}>Turns {timer.action.toLowerCase()} in</span>
+                      {timer.remainingSeconds !== undefined && (
+                        <CountdownTimer seconds={timer.remainingSeconds} />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--clr-accent)' }}>
+                        {(() => {
+                          if (!timer.time) return '';
+                          const [hh, mm] = timer.time.split(':').map(Number);
+                          const ampm = hh >= 12 ? 'PM' : 'AM';
+                          const h12  = hh % 12 || 12;
+                          return `${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
+                        })()}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--clr-text-muted)' }}>
+                        ({timer.repeat === 'once' ? 'once' : timer.repeat === 'daily' ? 'every day' : Array.isArray(timer.days) ? timer.days.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : ''})
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

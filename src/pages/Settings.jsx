@@ -98,7 +98,7 @@ function ChangePasswordModal({ show, onClose }) {
 
 export default function Settings() {
   const { user, logout }           = useAuth();
-  const { device, deviceId, plugLabels, updatePlugLabel } = useDevice();
+  const { device, deviceId, plugLabels, updatePlugLabel, clearDevice } = useDevice();
   const navigate                   = useNavigate();
 
   const [showUnpair, setShowUnpair]     = useState(false);
@@ -191,42 +191,48 @@ export default function Settings() {
         </div>
 
         {/* Outlet names */}
-        <p className="settings-section-title">Outlet Names</p>
-        <div className="settings-group">
-          {[1,2,3,4].map((n) => (
-            <div key={n} className="settings-item" style={{ cursor: 'default' }}>
-              <div className="settings-item-left">
-                <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)', fontSize: 16 }}>🔌</div>
-                <span className="settings-item-label">Plug {n}</span>
-              </div>
-
-              {renamingPlug === n ? (
-                <div style={{ display: 'flex', gap: 8, flex: 1, justifyContent: 'flex-end' }}>
-                  <input
-                    autoFocus
-                    className="form-input"
-                    value={renameValue}
-                    onChange={e => setRenameValue(e.target.value)}
-                    onKeyDown={e => { if(e.key==='Enter') commitRename(n); if(e.key==='Escape') setRenamingPlug(null); }}
-                    maxLength={20}
-                    style={{ maxWidth: 140, padding: '6px 10px', fontSize: 14 }}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => commitRename(n)}>Save</button>
+        {deviceId && (
+          <>
+            <p className="settings-section-title">Outlet Names</p>
+            <div className="settings-group">
+              {[1,2,3,4].map((n) => (
+                <div key={n} className="settings-item" style={{ cursor: 'default' }}>
+                  {renamingPlug === n ? (
+                    <div className="settings-rename-row">
+                      <input
+                        autoFocus
+                        className="form-input"
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onKeyDown={e => { if(e.key==='Enter') commitRename(n); if(e.key==='Escape') setRenamingPlug(null); }}
+                        maxLength={20}
+                        style={{ flex: 1, padding: '8px 12px', fontSize: 14 }}
+                      />
+                      <button className="btn btn-primary btn-sm" onClick={() => commitRename(n)}>Save</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setRenamingPlug(null)}>Cancel</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="settings-item-left">
+                        <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)', fontSize: 16 }}>🔌</div>
+                        <span className="settings-item-label">Plug {n}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span className="settings-item-value">{plugLabels[n]}</span>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => startRename(n)}
+                        >
+                          Rename
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className="settings-item-value">{plugLabels[n]}</span>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => startRename(n)}
-                  >
-                    Rename
-                  </button>
-                </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* Account settings */}
         {isEmailUser && (

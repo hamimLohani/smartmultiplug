@@ -365,16 +365,17 @@ export default function Timers() {
                 </div>
 
                 {repeat === 'custom' && (
-                  <div className="chip-group" style={{ marginTop: 10 }}>
+                  <div className="week-days-row" style={{ marginTop: 12 }}>
                     {DAYS_SHORT.map((day, i) => (
                       <button
                         key={day}
                         id={`day-${DAYS_KEYS[i]}`}
-                        className={`chip ${customDays.includes(DAYS_KEYS[i]) ? 'active' : ''}`}
+                        className={`day-circle-btn ${customDays.includes(DAYS_KEYS[i]) ? 'active' : ''}`}
                         onClick={() => toggleDay(DAYS_KEYS[i])}
-                        style={{ minWidth: 44, padding: '8px 10px', fontSize: 12 }}
+                        type="button"
+                        title={day}
                       >
-                        {day}
+                        {day.charAt(0)}
                       </button>
                     ))}
                   </div>

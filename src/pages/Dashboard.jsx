@@ -93,10 +93,10 @@ export default function Dashboard() {
         <div className="bg-mesh" />
         <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div className="page-header">
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>My Plugs</h1>
-              <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>No device paired</p>
+              <h1 className="page-title">My Plugs</h1>
+              <p className="page-subtitle">No device paired</p>
             </div>
           </div>
 
@@ -135,10 +135,10 @@ export default function Dashboard() {
 
       <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div className="page-header">
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>My Plugs</h1>
-            <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>
+            <h1 className="page-title">My Plugs</h1>
+            <p className="page-subtitle">
               {device?.name || 'Smart Multi-Plug'}
             </p>
           </div>
@@ -165,12 +165,7 @@ export default function Dashboard() {
         )}
 
         {/* Quick stats bar */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          marginBottom: 24,
-        }}>
+        <div className="stats-grid">
           {[
             {
               label: 'Active Outlets',
@@ -187,19 +182,11 @@ export default function Dashboard() {
               bg: 'var(--clr-surface-2)',
             },
           ].map(({ label, value, icon, color, bg }) => (
-            <div key={label} style={{
-              background: bg,
-              border: `1px solid ${color === 'var(--clr-text-muted)' ? 'var(--clr-border)' : 'rgba(79,142,247,0.2)'}`,
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <span style={{ fontSize: 22 }}>{icon}</span>
+            <div key={label} className="stat-card" style={{ background: bg }}>
+              <span className="stat-icon" style={{ color }}>{icon}</span>
               <div>
-                <p style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', marginTop: 3 }}>{label}</p>
+                <p className="stat-value" style={{ color }}>{value}</p>
+                <p className="stat-label">{label}</p>
               </div>
             </div>
           ))}
