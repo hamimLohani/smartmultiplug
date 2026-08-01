@@ -112,7 +112,7 @@ export default function PairDevice() {
     } catch (err) {
       console.error('Pairing failed:', err);
       if (err.message === 'not-found' || err.code === 'functions/not-found') {
-        setError('Device not found. Double-check the code on your device screen.');
+        setError('Device not found in Firebase. If the database was deleted, restore the device record or power-cycle the ESP after flashing the latest firmware.');
       } else if (err.message === 'already-claimed' || err.code === 'functions/already-exists') {
         setError('This device is already paired to another account. Contact support if this is your device.');
       } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
