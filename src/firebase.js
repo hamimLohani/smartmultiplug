@@ -23,6 +23,8 @@ export const isFirebaseConfigured = !!(
   firebaseConfig.databaseURL
 );
 
+console.log("Firebase Config databaseURL:", firebaseConfig.databaseURL);
+
 let app = null;
 let auth = null;
 let db = null;
@@ -33,7 +35,7 @@ if (isFirebaseConfigured) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
-    db = getDatabase(app);
+    db = getDatabase(app, firebaseConfig.databaseURL);
     functions = getFunctions(app);
     googleProvider = new GoogleAuthProvider();
   } catch (err) {
