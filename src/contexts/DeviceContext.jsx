@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 const DeviceContext = createContext(null);
 
 export function DeviceProvider({ children }) {
-  const { user } = useAuth();
+  const { user, mqttOk } = useAuth();
   const [device, setDevice]     = useState(isFirebaseConfigured ? undefined : null); // undefined = loading
   const [deviceId, setDeviceId] = useState(null);
   const [plugLabels, setPlugLabels] = useState({
@@ -45,6 +45,16 @@ export function DeviceProvider({ children }) {
     onValue(devicesRef, handleValue);
     return () => off(devicesRef, 'value', handleValue);
   }, [user]);
+
+  useEffect(() => {
+    if (user && deviceId && mqttOk) {
+      import('../mqtt').then(({ publish }) => {
+        const topic = `users/${user.uid}/devices/${deviceId}/sync`;
+        console.log(`[DeviceContext] Publishing sync message to topic: ${topic}`);
+        publish(topic, "sync", { retain: true, qos: 1 });
+      });
+    }
+  }, [user, deviceId, mqttOk]);
 
   const updatePlugLabel = async (plugNum, label) => {
     if (!isFirebaseConfigured || !user || !deviceId) return;
