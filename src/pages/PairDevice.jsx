@@ -72,7 +72,7 @@ export default function PairDevice() {
       }
 
       const deviceData = snap.val();
-      if (deviceData.claimed_by) {
+      if (deviceData.claimed_by && deviceData.claimed_by !== user.uid) {
         throw new Error('already-claimed');
       }
 
