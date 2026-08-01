@@ -250,30 +250,46 @@ export default function Settings() {
 
         {/* Device */}
         <p className="settings-section-title">Device</p>
-        <div className="settings-group">
-          <div className="settings-item" style={{ cursor: 'default' }}>
-            <div className="settings-item-left">
-              <div className="settings-item-icon" style={{ background: 'var(--clr-green-dim)' }}>🔌</div>
-              <div>
-                <p className="settings-item-label">Smart Multi-Plug</p>
-                <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{deviceId}</p>
+        {deviceId ? (
+          <div className="settings-group">
+            <div className="settings-item" style={{ cursor: 'default' }}>
+              <div className="settings-item-left">
+                <div className="settings-item-icon" style={{ background: 'var(--clr-green-dim)' }}>🔌</div>
+                <div>
+                  <p className="settings-item-label">Smart Multi-Plug</p>
+                  <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{deviceId}</p>
+                </div>
               </div>
+              <span className="badge badge-green">Paired</span>
             </div>
-            <span className="badge badge-green">Paired</span>
-          </div>
 
-          <div
-            id="settings-unpair-device"
-            className="settings-item"
-            onClick={() => setShowUnpair(true)}
-          >
-            <div className="settings-item-left">
-              <div className="settings-item-icon" style={{ background: 'var(--clr-red-dim)' }}>🔗</div>
-              <span className="settings-item-label" style={{ color: 'var(--clr-red)' }}>Remove Device</span>
+            <div
+              id="settings-unpair-device"
+              className="settings-item"
+              onClick={() => setShowUnpair(true)}
+            >
+              <div className="settings-item-left">
+                <div className="settings-item-icon" style={{ background: 'var(--clr-red-dim)' }}>🔗</div>
+                <span className="settings-item-label" style={{ color: 'var(--clr-red)' }}>Remove Device</span>
+              </div>
+              <ChevronRight />
             </div>
-            <ChevronRight />
           </div>
-        </div>
+        ) : (
+          <div className="settings-group">
+            <div
+              id="settings-pair-device"
+              className="settings-item"
+              onClick={() => navigate('/pair')}
+            >
+              <div className="settings-item-left">
+                <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)' }}>🔌</div>
+                <span className="settings-item-label" style={{ color: 'var(--clr-accent)' }}>Pair New Device</span>
+              </div>
+              <ChevronRight />
+            </div>
+          </div>
+        )}
 
         {/* Sign out */}
         <p className="settings-section-title">Account Actions</p>

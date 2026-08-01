@@ -85,8 +85,8 @@ function SetupGuide() {
 /* Shows the tab bar only on authenticated, paired routes */
 function AppShell() {
   const { user, loading: authLoading } = useAuth();
-  const { hasPairedDevice, loading: devLoading } = useDevice();
-  const showTabs = user && !authLoading && hasPairedDevice && !devLoading;
+  const { loading: devLoading } = useDevice();
+  const showTabs = user && !authLoading && !devLoading;
 
   return (
     <>
@@ -99,17 +99,17 @@ function AppShell() {
         <Route
           path="/pair"
           element={
-            <ProtectedRoute requireDevice={false}>
+            <ProtectedRoute>
               <PairDevice />
             </ProtectedRoute>
           }
         />
 
-        {/* Needs auth + paired device */}
+        {/* Needs auth + optional paired device */}
         <Route
           path="/"
           element={
-            <ProtectedRoute requireDevice>
+            <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           }
@@ -117,7 +117,7 @@ function AppShell() {
         <Route
           path="/timers"
           element={
-            <ProtectedRoute requireDevice>
+            <ProtectedRoute>
               <Timers />
             </ProtectedRoute>
           }
@@ -125,7 +125,7 @@ function AppShell() {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute requireDevice>
+            <ProtectedRoute>
               <Settings />
             </ProtectedRoute>
           }

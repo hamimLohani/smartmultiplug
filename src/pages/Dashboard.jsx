@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
 import { useMqttSubscribe, useMqttPublish } from '../hooks/useMqtt';
@@ -9,6 +10,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const CONFIRM_TIMEOUT_MS = 5000;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
   const { device, deviceId, plugLabels, updatePlugLabel, loading } = useDevice();
   const publish = useMqttPublish();
@@ -84,6 +86,45 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return <SkeletonLoader />;
+
+  if (!deviceId) {
+    return (
+      <div className="page-wrap">
+        <div className="bg-mesh" />
+        <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>My Plugs</h1>
+              <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>No device paired</p>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'var(--clr-surface)',
+            border: '1px solid var(--clr-border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '32px 24px',
+            textAlign: 'center',
+            marginTop: 40,
+          }}>
+            <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>🔌</span>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No Device Paired</h2>
+            <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              Pair your Smart Multi-Plug to monitor and control your outlets, set timers, and configure schedules.
+            </p>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => navigate('/pair')}
+              style={{ width: '100%', maxWidth: 200, margin: '0 auto' }}
+            >
+              Pair Device
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getDisplayState = (n) =>
     n in optimistic ? optimistic[n] : plugStates[n] ?? false;
