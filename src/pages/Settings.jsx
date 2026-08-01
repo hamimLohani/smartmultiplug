@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { auth, db } from '../firebase';
+import { auth, db, functions } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { ref, remove, update } from 'firebase/database';
 import toast from 'react-hot-toast';
 
 function ChevronRight() {
@@ -34,6 +36,17 @@ function Modal({ show, title, body, onConfirm, onCancel, confirmLabel = 'Confirm
       </div>
     </div>
   );
+}
+
+async function unpairDeviceDirectly(deviceId, uid) {
+  const deviceRef = ref(db, `devices/${deviceId}`);
+  const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
+
+  await update(deviceRef, {
+    claimed_by: null,
+    claimed_at: null,
+  });
+  await remove(userDeviceRef);
 }
 
 function ChangePasswordModal({ show, onClose }) {
@@ -120,16 +133,20 @@ export default function Settings() {
   const handleUnpair = async () => {
     setUnpairing(true);
     try {
-      const { ref, update, remove } = await import('firebase/database');
-      const deviceRef = ref(db, `devices/${deviceId}`);
-      const userDeviceRef = ref(db, `users/${user.uid}/devices/${deviceId}`);
-
-      // Atomically unclaim device on the database
-      await update(deviceRef, {
-        claimed_by: null,
-        claimed_at: null,
-      });
-      await remove(userDeviceRef);
+      if (functions) {
+        try {
+          const unclaimDevice = httpsCallable(functions, 'unclaimDevice');
+          await unclaimDevice({ deviceId });
+        } catch (err) {
+          if (['functions/not-found', 'functions/internal', 'functions/unavailable'].includes(err.code)) {
+            await unpairDeviceDirectly(deviceId, user.uid);
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        await unpairDeviceDirectly(deviceId, user.uid);
+      }
 
       toast.success('Device removed from your account.');
       clearDevice();

@@ -1,11 +1,40 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../firebase';
+import { db, functions } from '../firebase';
 import { ref, get, update } from 'firebase/database';
+import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const CODE_REGEX = /^SP-[A-Fa-f0-9]{8}$/;
+
+async function pairDeviceDirectly(deviceId, uid) {
+  const deviceRef = ref(db, `devices/${deviceId}`);
+  const snap = await get(deviceRef);
+  if (!snap.exists()) {
+    throw new Error('not-found');
+  }
+
+  const deviceData = snap.val();
+  if (deviceData.claimed_by && deviceData.claimed_by !== uid) {
+    throw new Error('already-claimed');
+  }
+
+  await update(deviceRef, {
+    claimed_by: uid,
+    claimed_at: Date.now(),
+  });
+
+  const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
+  await update(userDeviceRef, {
+    name: 'Smart Multi-Plug',
+    paired_at: Date.now(),
+    'plugs/1/label': 'Plug 1',
+    'plugs/2/label': 'Plug 2',
+    'plugs/3/label': 'Plug 3',
+    'plugs/4/label': 'Plug 4',
+  });
+}
 
 function Step({ n, label, active, done }) {
   return (
@@ -63,43 +92,28 @@ export default function PairDevice() {
 
     setLoading(true);
     try {
-      const deviceRef = ref(db, `devices/${code}`);
-
-      // Step 1: Read the device node
-      const snap = await get(deviceRef);
-      if (!snap.exists()) {
-        throw new Error('not-found');
+      if (functions) {
+        try {
+          const claimDevice = httpsCallable(functions, 'claimDevice');
+          await claimDevice({ deviceId: code });
+        } catch (err) {
+          if (['functions/not-found', 'functions/internal', 'functions/unavailable'].includes(err.code)) {
+            await pairDeviceDirectly(code, user.uid);
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        await pairDeviceDirectly(code, user.uid);
       }
-
-      const deviceData = snap.val();
-      if (deviceData.claimed_by && deviceData.claimed_by !== user.uid) {
-        throw new Error('already-claimed');
-      }
-
-      // Step 2: Claim the device (write rule enforces server-side constraint)
-      await update(deviceRef, {
-        claimed_by: user.uid,
-        claimed_at: Date.now(),
-      });
-
-      // Step 3: Create user's device preferences & names
-      const userDeviceRef = ref(db, `users/${user.uid}/devices/${code}`);
-      await update(userDeviceRef, {
-        name: 'Smart Multi-Plug',
-        paired_at: Date.now(),
-        'plugs/1/label': 'Plug 1',
-        'plugs/2/label': 'Plug 2',
-        'plugs/3/label': 'Plug 3',
-        'plugs/4/label': 'Plug 4',
-      });
 
       setPairedId(code);
       setStep(2);
     } catch (err) {
       console.error('Pairing failed:', err);
-      if (err.message === 'not-found') {
+      if (err.message === 'not-found' || err.code === 'functions/not-found') {
         setError('Device not found. Double-check the code on your device screen.');
-      } else if (err.message === 'already-claimed') {
+      } else if (err.message === 'already-claimed' || err.code === 'functions/already-exists') {
         setError('This device is already paired to another account. Contact support if this is your device.');
       } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
         setError('Permission denied. Make sure you are logged in and the device is provisioned.');
