@@ -84,13 +84,9 @@ export default function PairDevice() {
 
   const handleInput = (ev) => {
     const raw = ev.target.value.toUpperCase();
-    // Detect if user typed a specific prefix, else default to SP-
-    const match = raw.match(/^(SP[234]?-)/i);
-    const prefix = match ? match[1] : 'SP-';
-
-    const stripped = raw.replace(/^SP[234]?-?/i, '');
-    const clean = stripped.replace(/[^A-Fa-f0-9]/g, '').slice(0, 8);
-    setCode(clean ? `${prefix}${clean}` : '');
+    // Allow typing alphanumeric characters and hyphen freely up to 12 chars
+    const clean = raw.replace(/[^SP234A-F0-9-]/g, '').slice(0, 12);
+    setCode(clean);
     setError('');
   };
 
@@ -98,7 +94,13 @@ export default function PairDevice() {
     ev.preventDefault();
     setError('');
 
-    if (!CODE_REGEX.test(code)) {
+    let codeToPair = code.trim();
+    // Auto-prepend default 'SP-' if only 8-character hex code is entered
+    if (/^[A-Fa-f0-9]{8}$/.test(codeToPair)) {
+      codeToPair = `SP-${codeToPair}`;
+    }
+
+    if (!CODE_REGEX.test(codeToPair)) {
       setError('Enter a valid pairing code in the format SP-XXXXXXXX or SP4-XXXXXXXX (shown on your device screen).');
       return;
     }
@@ -108,25 +110,23 @@ export default function PairDevice() {
       if (functions) {
         try {
           const claimDevice = httpsCallable(functions, 'claimDevice');
-          await claimDevice({ deviceId: code });
+          await claimDevice({ deviceId: codeToPair });
         } catch (err) {
           if (['functions/not-found', 'functions/internal', 'functions/unavailable'].includes(err.code)) {
-            await pairDeviceDirectly(code, user.uid);
+            await pairDeviceDirectly(codeToPair, user.uid);
           } else {
             throw err;
           }
         }
       } else {
-        await pairDeviceDirectly(code, user.uid);
+        await pairDeviceDirectly(codeToPair, user.uid);
       }
 
-      setPairedId(code);
+      setPairedId(codeToPair);
       setStep(2);
     } catch (err) {
-      console.error('Pairing failed:', err);
-      if (err.message === 'not-found' || err.code === 'functions/not-found') {
-        setError('Device not found in Firebase. If the database was deleted, restore the device record or power-cycle the ESP after flashing the latest firmware.');
-      } else if (err.message === 'already-claimed' || err.code === 'functions/already-exists') {
+      console.error('[PairDevice] Claim error:', err);
+      if (err.message?.includes('already-claimed') || err.code?.includes('already-claimed')) {
         setError('This device is already paired to another account. Contact support if this is your device.');
       } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
         setError('Permission denied. Make sure you are logged in and the device is provisioned.');
@@ -207,7 +207,7 @@ export default function PairDevice() {
               placeholder="SP-00000000"
               value={code}
               onChange={handleInput}
-              maxLength={11}
+              maxLength={12}
               autoCorrect="off"
               autoCapitalize="characters"
               spellCheck={false}
@@ -223,7 +223,7 @@ export default function PairDevice() {
             id="pair-submit"
             type="submit"
             className="btn btn-primary btn-full btn-lg"
-            disabled={loading || code.length < 11}
+            disabled={loading || code.length < 8}
           >
             {loading ? <><span className="spinner" /> Pairing…</> : 'Pair Device'}
           </button>
