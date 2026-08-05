@@ -9,21 +9,21 @@ import ActiveTimersList from '../components/ActiveTimersList';
 import toast from 'react-hot-toast';
 
 const DELAY_PRESETS = [
-  { label: '1 min',  value: 1   },
-  { label: '5 min',  value: 5   },
-  { label: '15 min', value: 15  },
-  { label: '30 min', value: 30  },
-  { label: '1 hour', value: 60  },
+  { label: '1 min', value: 1 },
+  { label: '5 min', value: 5 },
+  { label: '15 min', value: 15 },
+  { label: '30 min', value: 30 },
+  { label: '1 hour', value: 60 },
 ];
 
-const DAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const DAYS_KEYS  = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 function WifiWarning() {
   return (
     <div className="inline-notice">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
       <span>Requires your plug to be connected to WiFi to keep accurate time.</span>
     </div>
@@ -36,22 +36,22 @@ export default function Timers() {
   const { deviceId, plugLabels } = useDevice();
   const publish = useMqttPublish();
 
-  const [mode, setMode]             = useState('delay');    // 'delay' | 'schedule'
-  const [selectedPlug, setPlug]     = useState(1);
-  const [action, setAction]         = useState('ON');
+  const [mode, setMode] = useState('delay');    // 'delay' | 'schedule'
+  const [selectedPlug, setPlug] = useState(1);
+  const [action, setAction] = useState('ON');
 
   // Delay state
   const [delayPreset, setDelayPreset] = useState(null);
-  const [customMin, setCustomMin]     = useState('');
+  const [customMin, setCustomMin] = useState('');
 
   // Schedule state
-  const [schedTime, setSchedTime]   = useState('08:00');
-  const [repeat, setRepeat]         = useState('once');     // 'once' | 'daily' | 'custom'
+  const [schedTime, setSchedTime] = useState('08:00');
+  const [repeat, setRepeat] = useState('once');     // 'once' | 'daily' | 'custom'
   const [customDays, setCustomDays] = useState([]);
 
   // Active timers from RTDB + MQTT
   const [activeTimers, setActiveTimers] = useState([]);
-  const [timerStates, setTimerStates]   = useState({}); // plug -> MQTT timer state
+  const [timerStates, setTimerStates] = useState({}); // plug -> MQTT timer state
 
   const baseTopic = user && deviceId
     ? `users/${user.uid}/devices/${deviceId}`
@@ -123,15 +123,15 @@ export default function Timers() {
       }
 
       const entry = {
-        plugNum:    selectedPlug,
-        plugLabel:  plugLabels[selectedPlug],
+        plugNum: selectedPlug,
+        plugLabel: plugLabels[selectedPlug],
         action,
-        time:       schedTime,
+        time: schedTime,
         repeat,
-        days:       repeat === 'custom' ? customDays : (repeat === 'daily' ? 'all' : 'once'),
-        enabled:    true,
-        createdAt:  Date.now(),
-        type:       'schedule',
+        days: repeat === 'custom' ? customDays : (repeat === 'daily' ? 'all' : 'once'),
+        enabled: true,
+        createdAt: Date.now(),
+        type: 'schedule',
       };
 
       // Save to RTDB
@@ -215,8 +215,8 @@ export default function Timers() {
             <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
               Please pair a device first to set automated on/off schedules and delay timers.
             </p>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={() => navigate('/pair')}
               style={{ width: '100%', maxWidth: 200, margin: '0 auto' }}
             >
@@ -265,7 +265,7 @@ export default function Timers() {
           <div style={{ marginTop: 20 }}>
             <p className="timer-section-label">Outlet</p>
             <div className="chip-group">
-              {[1,2,3,4].map(n => (
+              {[1, 2, 3, 4].map(n => (
                 <button
                   key={n}
                   id={`timer-plug-${n}`}
@@ -349,9 +349,9 @@ export default function Timers() {
                 <p className="timer-section-label">Repeat</p>
                 <div className="chip-group">
                   {[
-                    { label: 'Once',      key: 'once'   },
-                    { label: 'Every Day', key: 'daily'  },
-                    { label: 'Custom…',   key: 'custom' },
+                    { label: 'Once', key: 'once' },
+                    { label: 'Every Day', key: 'daily' },
+                    { label: 'Custom…', key: 'custom' },
                   ].map(({ label, key }) => (
                     <button
                       key={key}
