@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [online, setOnline]           = useState(null);  // null=unknown, true, false
 
   const confirmTimers = useRef({});
+  const lastSeenRef = useRef(Date.now());
 
   const baseTopic = user && deviceId
     ? `users/${user.uid}/devices/${deviceId}`
@@ -33,7 +34,10 @@ export default function Dashboard() {
   // Subscribe to device status topic
   useMqttSubscribe(
     baseTopic ? `${baseTopic}/status` : null,
-    (msg) => setOnline(msg === 'online'),
+    (msg) => {
+      lastSeenRef.current = Date.now();
+      setOnline(msg === 'online');
+    },
   );
 
   // Subscribe to all 4 plug state topics
@@ -42,6 +46,7 @@ export default function Dashboard() {
     useMqttSubscribe(
       baseTopic ? `${baseTopic}/plug/${n}/state` : null,
       (msg) => {
+        lastSeenRef.current = Date.now();
         const isOn = msg === '1' || msg === 'ON' || msg === 'true';
         setPlugStates((prev) => ({ ...prev, [n]: isOn }));
 
@@ -77,6 +82,8 @@ export default function Dashboard() {
       setOptimistic((prev) => { const c = { ...prev }; delete c[plugNum]; return c; });
       setPending((prev)    => { const c = { ...prev }; delete c[plugNum]; return c; });
       setFailed((prev)     => ({ ...prev, [plugNum]: true }));
+      // Active detection fallback: if a command fails to reply, ESP is offline
+      setOnline(false);
     }, CONFIRM_TIMEOUT_MS);
   }, [baseTopic, mqttOk, publish]);
 
@@ -86,6 +93,38 @@ export default function Dashboard() {
       Object.values(confirmTimers.current).forEach(clearTimeout);
     };
   }, []);
+
+  // Stale online check on initial connection
+  useEffect(() => {
+    if (mqttOk && online === true) {
+      const allNull = Object.values(plugStates).every((v) => v === null);
+      if (!allNull) return;
+
+      const timer = setTimeout(() => {
+        const checkNull = Object.values(plugStates).every((v) => v === null);
+        if (checkNull) {
+          console.warn('[Dashboard] ESP did not respond to sync within 4s. Marking offline.');
+          setOnline(false);
+        }
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [mqttOk, online, plugStates]);
+
+  // Heartbeat check: If we don't hear from the ESP for 45 seconds, assume it is offline.
+  useEffect(() => {
+    if (!mqttOk || online !== true) return;
+
+    const interval = setInterval(() => {
+      const secondsSinceLastSeen = (Date.now() - lastSeenRef.current) / 1000;
+      if (secondsSinceLastSeen > 45) {
+        console.warn(`[Dashboard] No heartbeat from ESP for ${secondsSinceLastSeen}s. Marking offline.`);
+        setOnline(false);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [mqttOk, online]);
 
   if (loading) return <SkeletonLoader />;
 
