@@ -1661,17 +1661,189 @@ a {
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  background: var(--clr-amber-dim);
-  border: 1px solid rgba(251, 191, 36, 0.25);
   border-radius: var(--radius-md);
   font-size: 13px;
-  color: var(--clr-amber);
   line-height: 1.5;
+  /* default = amber warning */
+  background: var(--clr-amber-dim);
+  border: 1px solid rgba(247, 201, 72, 0.25);
+  color: var(--clr-amber);
+}
+
+.inline-notice--warn {
+  background: var(--clr-amber-dim);
+  border: 1px solid rgba(247, 201, 72, 0.25);
+  color: var(--clr-amber);
+}
+
+.inline-notice--ok {
+  background: var(--clr-green-dim);
+  border: 1px solid rgba(49, 211, 141, 0.25);
+  color: var(--clr-green);
 }
 
 .inline-notice svg {
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+/* ── Time display button (collapsed state) ── */
+.time-display-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--clr-surface-2);
+  border: 1.5px solid var(--clr-border-md);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.time-display-btn:hover {
+  border-color: var(--clr-accent);
+  box-shadow: 0 0 0 3px var(--clr-accent-dim);
+}
+
+.time-display-value {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--clr-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.time-display-edit {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--clr-text-subtle);
+}
+
+/* ── Time spinner (expanded state) ── */
+.time-spinner-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--clr-surface-2);
+  border: 1.5px solid var(--clr-accent);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  box-shadow: 0 0 0 3px var(--clr-accent-dim);
+  animation: fadeIn 0.15s ease;
+}
+
+.time-spinner-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-spin-value {
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--clr-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  min-width: 2ch;
+  text-align: center;
+  letter-spacing: 0.04em;
+  padding: 6px 0;
+}
+
+.time-spin-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--clr-border-md);
+  background: var(--clr-surface-3);
+  color: var(--clr-text-muted);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.time-spin-btn:hover {
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+  background: var(--clr-accent-dim);
+}
+
+.time-spin-btn:active {
+  transform: scale(0.9);
+}
+
+.time-spin-sep {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--clr-text-muted);
+  line-height: 1;
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+.time-spin-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.time-spin-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--clr-border-md);
+  background: var(--clr-surface-3);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-spin-action-btn.ok {
+  background: var(--clr-accent-dim);
+  border-color: var(--clr-accent);
+  color: var(--clr-accent);
+}
+
+.time-spin-action-btn.ok:hover {
+  background: var(--clr-accent);
+  color: #061019;
+  box-shadow: 0 0 14px rgba(88, 166, 255, 0.4);
+}
+
+.time-spin-action-btn.cancel {
+  background: var(--clr-red-dim);
+  border-color: rgba(255, 107, 125, 0.3);
+  color: var(--clr-red);
+}
+
+.time-spin-action-btn.cancel:hover {
+  background: rgba(255, 107, 125, 0.25);
+}
+
+/* ── Schedule disabled overlay ── */
+.sched-disabled-layer {
+  pointer-events: none;
+  opacity: 0.38;
+  filter: grayscale(0.4);
+  user-select: none;
 }
 
 @media (max-width: 380px) {

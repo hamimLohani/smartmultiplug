@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
@@ -19,20 +19,151 @@ const DELAY_PRESETS = [
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAYS_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-function WifiWarning() {
+function WifiNotice({ connected }) {
+  if (connected) {
+    return (
+      <div className="inline-notice inline-notice--ok">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M5 12.55a11 11 0 0 1 14.08 0" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
+        </svg>
+        <span>WiFi connected — schedule will sync to device.</span>
+      </div>
+    );
+  }
   return (
-    <div className="inline-notice">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <div className="inline-notice inline-notice--warn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
-      <span>Requires your plug to be connected to WiFi to keep accurate time.</span>
+      <span>WiFi not connected — connect your plug to enable schedules.</span>
+    </div>
+  );
+}
+
+/* ── Custom drum-roll time picker ── */
+function TimeSpinner({ value, onChange }) {
+  const [hh, mm] = value.split(':').map(Number);
+  const [editing, setEditing] = useState(false);
+  const [tempH, setTempH] = useState(hh);
+  const [tempM, setTempM] = useState(mm);
+
+  // Long-press repeat
+  const intervalRef = useRef(null);
+  const startRepeat = useCallback((fn) => {
+    fn();
+    intervalRef.current = setInterval(fn, 120);
+  }, []);
+  const stopRepeat = useCallback(() => {
+    clearInterval(intervalRef.current);
+  }, []);
+
+  const open = () => {
+    setTempH(hh);
+    setTempM(mm);
+    setEditing(true);
+  };
+
+  const confirm = () => {
+    const formatted = `${String(tempH).padStart(2, '0')}:${String(tempM).padStart(2, '0')}`;
+    onChange(formatted);
+    setEditing(false);
+  };
+
+  const cancel = () => setEditing(false);
+
+  const incrH = () => setTempH(h => (h + 1) % 24);
+  const decrH = () => setTempH(h => (h + 23) % 24);
+  const incrM = () => setTempM(m => (m + 1) % 60);
+  const decrM = () => setTempM(m => (m + 59) % 60);
+
+  const display = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+
+  return (
+    <div>
+      {/* Collapsed display */}
+      {!editing && (
+        <button type="button" className="time-display-btn" onClick={open}>
+          <span className="time-display-value">{display}</span>
+          <span className="time-display-edit">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+            Edit
+          </span>
+        </button>
+      )}
+
+      {/* Expanded spinner */}
+      {editing && (
+        <div className="time-spinner-wrap">
+          {/* Hours column */}
+          <div className="time-spinner-col">
+            <button
+              type="button"
+              className="time-spin-btn"
+              onMouseDown={() => startRepeat(incrH)}
+              onMouseUp={stopRepeat}
+              onMouseLeave={stopRepeat}
+              onTouchStart={() => startRepeat(incrH)}
+              onTouchEnd={stopRepeat}
+              aria-label="Increase hours"
+            >▲</button>
+            <div className="time-spin-value">{String(tempH).padStart(2, '0')}</div>
+            <button
+              type="button"
+              className="time-spin-btn"
+              onMouseDown={() => startRepeat(decrH)}
+              onMouseUp={stopRepeat}
+              onMouseLeave={stopRepeat}
+              onTouchStart={() => startRepeat(decrH)}
+              onTouchEnd={stopRepeat}
+              aria-label="Decrease hours"
+            >▼</button>
+          </div>
+
+          <span className="time-spin-sep">:</span>
+
+          {/* Minutes column */}
+          <div className="time-spinner-col">
+            <button
+              type="button"
+              className="time-spin-btn"
+              onMouseDown={() => startRepeat(incrM)}
+              onMouseUp={stopRepeat}
+              onMouseLeave={stopRepeat}
+              onTouchStart={() => startRepeat(incrM)}
+              onTouchEnd={stopRepeat}
+              aria-label="Increase minutes"
+            >▲</button>
+            <div className="time-spin-value">{String(tempM).padStart(2, '0')}</div>
+            <button
+              type="button"
+              className="time-spin-btn"
+              onMouseDown={() => startRepeat(decrM)}
+              onMouseUp={stopRepeat}
+              onMouseLeave={stopRepeat}
+              onTouchStart={() => startRepeat(decrM)}
+              onTouchEnd={stopRepeat}
+              aria-label="Decrease minutes"
+            >▼</button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="time-spin-actions">
+            <button type="button" className="time-spin-action-btn cancel" onClick={cancel}>✕</button>
+            <button type="button" className="time-spin-action-btn ok" onClick={confirm}>OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function Timers() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, mqttOk } = useAuth();
   const { deviceId, plugLabels } = useDevice();
   const publish = useMqttPublish();
 
@@ -259,7 +390,7 @@ export default function Timers() {
             </button>
           </div>
 
-          {mode === 'schedule' && <WifiWarning />}
+          {mode === 'schedule' && <WifiNotice connected={mqttOk} />}
 
           {/* Plug selector */}
           <div style={{ marginTop: 20 }}>
@@ -333,15 +464,12 @@ export default function Timers() {
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }} className={!mqttOk ? 'sched-disabled-layer' : ''}>
               <div>
                 <p className="timer-section-label">Time</p>
-                <input
-                  id="schedule-time-picker"
-                  type="time"
-                  className="time-picker-input"
+                <TimeSpinner
                   value={schedTime}
-                  onChange={(e) => setSchedTime(e.target.value)}
+                  onChange={setSchedTime}
                 />
               </div>
 
@@ -358,6 +486,7 @@ export default function Timers() {
                       id={`repeat-${key}`}
                       className={`chip ${repeat === key ? 'active' : ''}`}
                       onClick={() => setRepeat(key)}
+                      disabled={!mqttOk}
                     >
                       {label}
                     </button>
@@ -374,6 +503,7 @@ export default function Timers() {
                         onClick={() => toggleDay(DAYS_KEYS[i])}
                         type="button"
                         title={day}
+                        disabled={!mqttOk}
                       >
                         {day.charAt(0)}
                       </button>
@@ -390,7 +520,7 @@ export default function Timers() {
             className="btn btn-primary btn-full"
             style={{ marginTop: 24 }}
             onClick={handleAddTimer}
-            disabled={!baseTopic}
+            disabled={!baseTopic || (mode === 'schedule' && !mqttOk)}
           >
             + Add Timer
           </button>

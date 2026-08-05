@@ -21,8 +21,10 @@ function getClientId() {
 }
 
 export function connectMqtt(onConnected, onDisconnected) {
-  if (client && client.connected) {
-    onConnected?.();
+  if (client) {
+    if (client.connected) {
+      onConnected?.();
+    }
     return client;
   }
 
@@ -67,10 +69,11 @@ export function connectMqtt(onConnected, onDisconnected) {
 }
 
 export function subscribe(topic, callback) {
-  if (!client) return;
   if (!subscribers.has(topic)) {
     subscribers.set(topic, new Set());
-    client.subscribe(topic, { qos: 1 });
+    if (client && client.connected) {
+      client.subscribe(topic, { qos: 1 });
+    }
   }
   subscribers.get(topic).add(callback);
 
@@ -81,7 +84,9 @@ export function subscribe(topic, callback) {
     cbs.delete(callback);
     if (cbs.size === 0) {
       subscribers.delete(topic);
-      client?.unsubscribe(topic);
+      if (client && client.connected) {
+        client.unsubscribe(topic);
+      }
     }
   };
 }
