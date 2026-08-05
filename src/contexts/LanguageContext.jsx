@@ -72,6 +72,26 @@ const translations = {
     settings_confirm_logout_title: 'Sign Out',
     settings_confirm_logout_body: 'Are you sure you want to sign out of your account?',
 
+    // Help & Instructions
+    settings_help_title: 'Help & Instructions',
+    settings_help_subtitle: 'How to Setup & Use',
+    settings_help_intro: 'Follow the steps below to set up your Smart Multi-Plug for the first time:',
+    settings_help_step1_title: 'Power On (Power On)',
+    settings_help_step1_desc: 'Plug the multi-plug into a wall socket. The plug display or indicator light will turn on.',
+    settings_help_step2_title: 'Navigate Screen',
+    settings_help_step2_desc: 'View the on/off status and network status on the display. Use the 3 buttons (Up/Down/OK) below the display to navigate the screen menu.',
+    settings_help_step3_title: 'Connect to Plug WiFi (Plug WiFi)',
+    settings_help_step3_desc: 'Turn on your phone\'s WiFi. You will see a new WiFi named "SP4-XXXX" (or SP2/SP3). Tap to connect (no password needed).',
+    settings_help_step4_title: 'Connect to Home WiFi (Setup Internet)',
+    settings_help_step4_desc: 'After connecting to the plug\'s WiFi, a setup page will open automatically on your phone. If it doesn\'t, go to "192.168.4.1" in your browser. Select your home WiFi, enter the password, and tap "Save". The plug will connect to the internet.',
+    settings_help_step5_title: 'Get Security Code (Security Code)',
+    settings_help_step5_desc: 'On display model: Press the plug button, go to Menu → App Connect. You will see "Device ID" and "Security Code" (8-digit code). Without display: The code is printed on the back of the plug or on a sticker.',
+    settings_help_step6_title: 'Connect Plug to Account (App Connect)',
+    settings_help_step6_desc: 'Login or create a new account from the right side form on this website. After logging in, go to the Pair Device page and submit the plug ID and security code.',
+    settings_help_step7_title: 'Control Plug via App (App Control)',
+    settings_help_step7_desc: 'Once connected, you can turn each outlet on/off from the Dashboard. You can also go to Timers & Schedule to set auto-off or schedules for outlets.',
+    settings_download_manual: 'Download User Manual (Bangla PDF)',
+
     // Timers Page
     timers_title: 'Advanced Timers',
     timers_subtitle: 'Automate your outlets with delays or schedules.',
@@ -174,6 +194,26 @@ const translations = {
     settings_confirm_unpair_body: 'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে এই মাল্টি-প্লাগটি রিমুভ করতে চান? রিমুভ করলে এটি আবার নতুন কোড দিয়ে কানেক্ট করতে হবে।',
     settings_confirm_logout_title: 'লগ আউট',
     settings_confirm_logout_body: 'আপনি কি নিশ্চিত যে অ্যাকাউন্ট থেকে লগ আউট করতে চান?',
+
+    // Help & Instructions
+    settings_help_title: 'সাহায্য ও নির্দেশিকা',
+    settings_help_subtitle: 'কিভাবে সেটআপ ও ব্যবহার করবেন?',
+    settings_help_intro: 'আপনার স্মার্ট মাল্টি-প্লাগটি প্রথমবার সেটআপ করার জন্য নিচের ধাপগুলো মনোযোগ দিয়ে অনুসরণ করুন:',
+    settings_help_step1_title: 'পাওয়ার অন করুন (Power On)',
+    settings_help_step1_desc: 'মাল্টি-প্লাগটির মেইন তারটি দেওয়ালের বৈদ্যুতিক সকেটে লাগান। প্লাগের ডিসপ্লে অথবা ইন্ডিকেটর লাল লাইটটি জ্বলে উঠবে।',
+    settings_help_step2_title: 'মেনু ও ডিসপ্লে (Navigate Screen)',
+    settings_help_step2_desc: 'ডিসপ্লে স্ক্রিনে আপনার মাল্টি-প্লাগের অন/অফ অবস্থা এবং নেটওয়ার্ক স্ট্যাটাস দেখতে পাবেন। ডিসপ্লের নিচে ৩টি বোতাম (Up/Down/OK) চেপে স্ক্রিন মেনুতে যেরাযুরি করতে পারবেন।',
+    settings_help_step3_title: 'প্লাগের নিজস্ব ওয়াইফাই কানেক্ট করুন (Plug WiFi)',
+    settings_help_step3_desc: 'আপনার মোবাইল ফোনের WiFi চালু করুন। সেখানে "SP4-XXXX" (অথবা SP2/SP3) নামের একটি নতুন ওয়াইফাই দেখতে পাবেন। এটিতে ক্লিক করে কানেক্ট করুন (কোনো পাসওয়ার্ড লাগবে না)।',
+    settings_help_step4_title: 'বাসার ওয়াইফাইয়ের সাথে প্লাগ কানেক্ট করুন (Setup Internet)',
+    settings_help_step4_desc: 'প্লাগের ওয়াইফাই কানেক্ট করার পর আপনার মোবাইলে অটোমেটিক একটি সেটআপ পেজ খুলবে। পেজটি না আসলে ব্রাউজারে "192.168.4.1" লিখে গো (Go) চাপুন। সেখানে আপনার বাসার ওয়াইফাই সিলেক্ট করে পাসওয়ার্ড দিন এবং "Save" বাটনে ক্লিক করুন। প্লাগটি আপনার বাসার ইন্টারনেটে কানেক্ট হয়ে যাবে।',
+    settings_help_step5_title: 'সিকিউরিটি কোড সংগ্রহ করুন (Security Code)',
+    settings_help_step5_desc: 'ডিসপ্লে মডেলে: প্লাগের বোতাম চেপে Menu → App Connect-এ যান। সেখানে "Device ID" এবং "Security Code" (৮ সংখ্যার কোড) দেখতে পাবেন। ডিসপ্লে না থাকলে: প্লাগের বডি বা পেছনের স্টিকারে কোডটি লেখা পাবেন।',
+    settings_help_step6_title: 'অ্যাকাউন্টে প্লাগ কানেক্ট করুন (App Connect)',
+    settings_help_step6_desc: 'ডানপাশের ফর্ম থেকে এই ওয়েবসাইটে লগইন বা নতুন অ্যাকাউন্ট খুলুন। লগইন করার পর প্লাগ কানেক্ট (Pair) করার পেজে গিয়ে প্লাগের আইডি (ID) এবং সিকিউরিটি কোডটি বিসেয় সাবমিট করুন।',
+    settings_help_step7_title: 'মোবাইল দিয়ে প্লাগ নিয়ন্ত্রণ করুন (App Control)',
+    settings_help_step7_desc: 'প্লাগ কানেক্ট হয়ে গেলে ড্যাশবোর্ড থেকে প্রতিটি সকেট অন/অফ করতে পারবেন। এছাড়া টাইমার ও শিডিউল অপশনে গিয়ে সকেটগুলোর জন্য অটো-অফ বা সময়সূচী সেট করতে পারবেন।',
+    settings_download_manual: 'ইউজার ম্যানুয়াল ডাউনলোড করুন (বাংলা PDF)',
 
     // Timers Page
     timers_title: 'টাইমার ও শিডিউল',

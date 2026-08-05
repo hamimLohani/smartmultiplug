@@ -170,6 +170,94 @@ function ChangePasswordModal({ show, onClose, lang, t }) {
   );
 }
 
+const HELP_STEPS = [
+  { key: 1 }, { key: 2 }, { key: 3 }, { key: 4 },
+  { key: 5 }, { key: 6 }, { key: 7 },
+];
+
+const STEP_ICONS = ['⚡', '🖥️', '📶', '🌐', '🔑', '🔗', '🎮'];
+
+function HelpInstructions({ lang, t }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div>
+      <div
+        className="settings-item"
+        onClick={() => setOpen(v => !v)}
+        style={{ cursor: 'pointer' }}
+        id="settings-help-toggle"
+      >
+        <div className="settings-item-left">
+          <div className="settings-item-icon" style={{ background: 'rgba(79,142,247,0.15)', fontSize: 16 }}>📖</div>
+          <div>
+            <span className="settings-item-label">{t('settings_help_subtitle')}</span>
+            <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', marginTop: 2 }}>
+              {lang === 'bn' ? '৭টি সহজ ধাপ' : '7 easy steps'}
+            </p>
+          </div>
+        </div>
+        <svg
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transition: 'transform 0.25s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', flexShrink: 0 }}
+        >
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+
+      {open && (
+        <div style={{
+          padding: '16px 16px 20px',
+          borderTop: '1px solid var(--clr-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+        }}>
+          <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+            {t('settings_help_intro')}
+          </p>
+          {HELP_STEPS.map(({ key }, idx) => (
+            <div
+              key={key}
+              style={{
+                display: 'flex',
+                gap: 14,
+                paddingBottom: idx < 6 ? 18 : 0,
+                marginBottom: idx < 6 ? 18 : 0,
+                borderBottom: idx < 6 ? '1px solid var(--clr-border)' : 'none',
+              }}
+            >
+              {/* Step number bubble */}
+              <div style={{
+                flexShrink: 0,
+                width: 32, height: 32,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--clr-accent), #7c5af4)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 13, fontWeight: 800, color: '#fff',
+                boxShadow: '0 2px 8px rgba(79,142,247,0.3)',
+                marginTop: 1,
+              }}>
+                {key}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--clr-text)', marginBottom: 4, lineHeight: 1.4 }}>
+                  <span style={{ marginRight: 6 }}>{STEP_ICONS[idx]}</span>
+                  {t(`settings_help_step${key}_title`)}
+                </p>
+                <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', lineHeight: 1.65 }}>
+                  {t(`settings_help_step${key}_desc`)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const { user, logout }           = useAuth();
   const { device, deviceId, plugLabels, updatePlugLabel, clearDevice } = useDevice();
@@ -408,6 +496,37 @@ export default function Settings() {
             </div>
           </div>
         )}
+
+        {/* Help & Instructions */}
+        <p className="settings-section-title">{t('settings_help_title')}</p>
+        <div className="settings-group" style={{ marginBottom: 28 }}>
+          {/* PDF Download */}
+          <a
+            id="settings-download-manual"
+            href="/Smart_MultiPlug_User_Manual_Bangla.pdf"
+            download="Smart_MultiPlug_User_Manual_Bangla.pdf"
+            className="settings-item"
+            style={{ textDecoration: 'none', color: 'inherit' }}
+          >
+            <div className="settings-item-left">
+              <div className="settings-item-icon" style={{ background: 'rgba(239,68,68,0.15)', fontSize: 16 }}>📄</div>
+              <div>
+                <span className="settings-item-label" style={{ color: 'var(--clr-accent)' }}>
+                  {t('settings_download_manual')}
+                </span>
+                <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', marginTop: 2 }}>
+                  Smart_MultiPlug_User_Manual_Bangla.pdf
+                </p>
+              </div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </a>
+
+          {/* Step-by-step instructions (collapsible) */}
+          <HelpInstructions lang={lang} t={t} />
+        </div>
 
         {/* Sign out */}
         <p className="settings-section-title">{lang === 'bn' ? 'অ্যাকাউন্ট অ্যাকশন' : 'Account Actions'}</p>
