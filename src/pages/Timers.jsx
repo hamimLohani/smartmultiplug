@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useMqttSubscribe, useMqttPublish } from '../hooks/useMqtt';
 import { ref, set, push, remove, onValue, off } from 'firebase/database';
 import { db } from '../firebase';
@@ -17,9 +18,10 @@ const DELAY_PRESETS = [
 ];
 
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS_SHORT_BN = ['সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি', 'রবি'];
 const DAYS_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
-function WifiNotice({ connected }) {
+function WifiNotice({ connected, t }) {
   if (connected) {
     return (
       <div className="inline-notice inline-notice--ok">
@@ -27,7 +29,7 @@ function WifiNotice({ connected }) {
           <path d="M1.42 9a16 16 0 0 1 21.16 0" /><path d="M5 12.55a11 11 0 0 1 14.08 0" />
           <path d="M8.53 16.11a6 6 0 0 1 6.95 0" /><line x1="12" y1="20" x2="12.01" y2="20" />
         </svg>
-        <span>WiFi connected — schedule will sync to device.</span>
+        <span>{t('timers_wifi_ok')}</span>
       </div>
     );
   }
@@ -36,13 +38,13 @@ function WifiNotice({ connected }) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
-      <span>WiFi not connected — connect your plug to enable schedules.</span>
+      <span>{t('timers_wifi_warning')}</span>
     </div>
   );
 }
 
 /* ── Custom drum-roll time picker ── */
-function TimeSpinner({ value, onChange }) {
+function TimeSpinner({ value, onChange, lang }) {
   const [hh, mm] = value.split(':').map(Number);
   const [editing, setEditing] = useState(false);
   const [tempH, setTempH] = useState(hh);
@@ -90,7 +92,7 @@ function TimeSpinner({ value, onChange }) {
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
-            Edit
+            {lang === 'bn' ? 'পরিবর্তন' : 'Edit'}
           </span>
         </button>
       )}
@@ -153,7 +155,9 @@ function TimeSpinner({ value, onChange }) {
           {/* Action buttons */}
           <div className="time-spin-actions">
             <button type="button" className="time-spin-action-btn cancel" onClick={cancel}>✕</button>
-            <button type="button" className="time-spin-action-btn ok" onClick={confirm}>OK</button>
+            <button type="button" className="time-spin-action-btn ok" onClick={confirm}>
+              {lang === 'bn' ? 'ঠিক আছে' : 'OK'}
+            </button>
           </div>
         </div>
       )}
@@ -165,6 +169,7 @@ export default function Timers() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
   const { deviceId, plugLabels, numPlugs } = useDevice();
+  const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
   const [mode, setMode] = useState('delay');    // 'delay' | 'schedule'
@@ -225,15 +230,22 @@ export default function Timers() {
   const handleAddTimer = async () => {
     if (!baseTopic) return;
 
+    const currentPlugLabel = plugLabels[selectedPlug] || (lang === 'bn' ? `প্লাগ ${selectedPlug}` : `Plug ${selectedPlug}`);
+
     if (mode === 'delay') {
       const mins = getDelayMinutes();
-      if (!mins) { toast.error('Pick a delay duration.'); return; }
+      if (!mins) { 
+        toast.error(lang === 'bn' ? 'একটি টাইমারের সময় নির্ধারণ করুন।' : 'Pick a delay duration.'); 
+        return; 
+      }
 
       // Check if there's already an active delay for this plug
       const existing = timerStates[selectedPlug];
       if (existing?.active) {
         const ok = window.confirm(
-          `There's already a timer running on ${plugLabels[selectedPlug]}. Replace it?`
+          lang === 'bn'
+            ? `${currentPlugLabel} এ ইতিমধ্যে একটি টাইমার চলছে। এটি পরিবর্তন করতে চান?`
+            : `There's already a timer running on ${currentPlugLabel}. Replace it?`
         );
         if (!ok) return;
       }
@@ -244,18 +256,26 @@ export default function Timers() {
         timestamp: Date.now(),
       };
       publish(`${baseTopic}/plug/${selectedPlug}/timer/set`, payload);
-      toast.success(`Timer set — ${plugLabels[selectedPlug]} will turn ${action} in ${mins} min`);
+      toast.success(
+        lang === 'bn'
+          ? `টাইমার সেট করা হয়েছে — ${mins} মিনিট পর ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+          : `Timer set — ${currentPlugLabel} will turn ${action} in ${mins} min`
+      );
 
     } else {
       // Schedule mode
-      if (!schedTime) { toast.error('Pick a time.'); return; }
+      if (!schedTime) { 
+        toast.error(lang === 'bn' ? 'সময় নির্বাচন করুন।' : 'Pick a time.'); 
+        return; 
+      }
       if (repeat === 'custom' && customDays.length === 0) {
-        toast.error('Select at least one day.'); return;
+        toast.error(lang === 'bn' ? 'অন্তত একদিন নির্বাচন করুন।' : 'Select at least one day.'); 
+        return;
       }
 
       const entry = {
         plugNum: selectedPlug,
-        plugLabel: plugLabels[selectedPlug],
+        plugLabel: currentPlugLabel,
         action,
         time: schedTime,
         repeat,
@@ -280,7 +300,11 @@ export default function Timers() {
         { retain: true },
       );
 
-      toast.success(`Schedule saved — ${plugLabels[selectedPlug]} will turn ${action} at ${schedTime}`);
+      toast.success(
+        lang === 'bn'
+          ? `সময়সূচী সংরক্ষিত হয়েছে — ${schedTime} মিনিটে ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+          : `Schedule saved — ${currentPlugLabel} will turn ${action} at ${schedTime}`
+      );
     }
   };
 
@@ -296,7 +320,7 @@ export default function Timers() {
       const remaining = activeTimers.filter(t => t.id !== timer.id && t.plugNum === timer.plugNum);
       publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, remaining, { retain: true });
     }
-    toast.success('Timer removed.');
+    toast.success(lang === 'bn' ? 'টাইমারটি মুছে ফেলা হয়েছে।' : 'Timer removed.');
   };
 
   // Build combined timer list (MQTT delay timers + RTDB schedule entries)
@@ -328,8 +352,8 @@ export default function Timers() {
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>Advanced Timers</h1>
-              <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>No device paired</p>
+              <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{t('timers_title')}</h1>
+              <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>{t('dash_paired')}</p>
             </div>
           </div>
 
@@ -342,16 +366,16 @@ export default function Timers() {
             marginTop: 40,
           }}>
             <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>⏱️</span>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Schedules Disabled</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('timers_disabled_title')}</h2>
             <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
-              Please pair a device first to set automated on/off schedules and delay timers.
+              {t('timers_disabled_desc')}
             </p>
             <button
               className="btn btn-primary"
               onClick={() => navigate('/pair')}
               style={{ width: '100%', maxWidth: 200, margin: '0 auto' }}
             >
-              Pair Device
+              {t('dash_btn_pair')}
             </button>
           </div>
         </div>
@@ -364,9 +388,9 @@ export default function Timers() {
       <div className="bg-mesh" />
 
       <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>Advanced Timers</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{t('timers_title')}</h1>
         <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', marginBottom: 24 }}>
-          Automate your outlets with delays or schedules.
+          {t('timers_subtitle')}
         </p>
 
         {/* Panel card */}
@@ -379,22 +403,22 @@ export default function Timers() {
               className={`timer-mode-btn ${mode === 'delay' ? 'active' : ''}`}
               onClick={() => setMode('delay')}
             >
-              ⏱ Delay
+              {t('timers_delay')}
             </button>
             <button
               id="timer-mode-schedule"
               className={`timer-mode-btn ${mode === 'schedule' ? 'active' : ''}`}
               onClick={() => setMode('schedule')}
             >
-              📅 Schedule
+              {t('timers_schedule')}
             </button>
           </div>
 
-          {mode === 'schedule' && <WifiNotice connected={mqttOk} />}
+          {mode === 'schedule' && <WifiNotice connected={mqttOk} t={t} />}
 
           {/* Plug selector */}
           <div style={{ marginTop: 20 }}>
-            <p className="timer-section-label">Outlet</p>
+            <p className="timer-section-label">{t('timers_outlet')}</p>
             <div className="chip-group">
               {Array.from({ length: numPlugs }, (_, i) => i + 1).map(n => (
                 <button
@@ -403,7 +427,7 @@ export default function Timers() {
                   className={`chip ${selectedPlug === n ? 'active' : ''}`}
                   onClick={() => setPlug(n)}
                 >
-                  {plugLabels[n]}
+                  {plugLabels[n] || (lang === 'bn' ? `প্লাগ ${n}` : `Plug ${n}`)}
                 </button>
               ))}
             </div>
@@ -411,21 +435,21 @@ export default function Timers() {
 
           {/* Action */}
           <div style={{ marginTop: 16 }}>
-            <p className="timer-section-label">Action</p>
+            <p className="timer-section-label">{t('timers_action')}</p>
             <div className="action-toggle">
               <button
                 id="timer-action-on"
                 className={`action-btn on ${action === 'ON' ? 'active' : ''}`}
                 onClick={() => setAction('ON')}
               >
-                ⚡ Turn On
+                {t('timers_turn_on')}
               </button>
               <button
                 id="timer-action-off"
                 className={`action-btn off ${action === 'OFF' ? 'active' : ''}`}
                 onClick={() => setAction('OFF')}
               >
-                ○ Turn Off
+                {t('timers_turn_off')}
               </button>
             </div>
           </div>
@@ -433,7 +457,7 @@ export default function Timers() {
           {/* Mode-specific options */}
           {mode === 'delay' ? (
             <div style={{ marginTop: 16 }}>
-              <p className="timer-section-label">Delay Duration</p>
+              <p className="timer-section-label">{t('timers_delay_duration')}</p>
               <div className="delay-chips">
                 {DELAY_PRESETS.map(({ label, value }) => (
                   <button
@@ -442,7 +466,9 @@ export default function Timers() {
                     className={`delay-chip ${delayPreset === value ? 'active' : ''}`}
                     onClick={() => { setDelayPreset(value); setCustomMin(''); }}
                   >
-                    {label}
+                    {lang === 'bn' 
+                      ? (value === 60 ? '১ ঘণ্টা' : `${value} মিনিট`) 
+                      : label}
                   </button>
                 ))}
               </div>
@@ -452,34 +478,37 @@ export default function Timers() {
                     id="delay-custom-min"
                     type="number"
                     className="form-input"
-                    placeholder="Custom minutes"
+                    placeholder={t('timers_custom_min')}
                     min="1"
                     max="999"
                     value={customMin}
                     onChange={(e) => { setCustomMin(e.target.value); setDelayPreset(null); }}
                     style={{ flex: 1 }}
                   />
-                  <span style={{ color: 'var(--clr-text-muted)', fontSize: 14, whiteSpace: 'nowrap' }}>min</span>
+                  <span style={{ color: 'var(--clr-text-muted)', fontSize: 14, whiteSpace: 'nowrap' }}>
+                    {lang === 'bn' ? 'মিনিট' : 'min'}
+                  </span>
                 </div>
               </div>
             </div>
           ) : (
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }} className={!mqttOk ? 'sched-disabled-layer' : ''}>
               <div>
-                <p className="timer-section-label">Time</p>
+                <p className="timer-section-label">{t('timers_time')}</p>
                 <TimeSpinner
                   value={schedTime}
                   onChange={setSchedTime}
+                  lang={lang}
                 />
               </div>
 
               <div>
-                <p className="timer-section-label">Repeat</p>
+                <p className="timer-section-label">{t('timers_repeat')}</p>
                 <div className="chip-group">
                   {[
-                    { label: 'Once', key: 'once' },
-                    { label: 'Every Day', key: 'daily' },
-                    { label: 'Custom…', key: 'custom' },
+                    { label: t('timers_once'), key: 'once' },
+                    { label: t('timers_everyday'), key: 'daily' },
+                    { label: t('timers_custom_days'), key: 'custom' },
                   ].map(({ label, key }) => (
                     <button
                       key={key}
@@ -502,10 +531,10 @@ export default function Timers() {
                         className={`day-circle-btn ${customDays.includes(DAYS_KEYS[i]) ? 'active' : ''}`}
                         onClick={() => toggleDay(DAYS_KEYS[i])}
                         type="button"
-                        title={day}
+                        title={lang === 'bn' ? DAYS_SHORT_BN[i] : day}
                         disabled={!mqttOk}
                       >
-                        {day.charAt(0)}
+                        {lang === 'bn' ? DAYS_SHORT_BN[i].charAt(0) : day.charAt(0)}
                       </button>
                     ))}
                   </div>
@@ -522,13 +551,13 @@ export default function Timers() {
             onClick={handleAddTimer}
             disabled={!baseTopic || (mode === 'schedule' && !mqttOk)}
           >
-            + Add Timer
+            {t('timers_add_btn')}
           </button>
         </div>
 
         {/* Active timers */}
         <div className="section-header">
-          <span className="section-title">Active Timers</span>
+          <span className="section-title">{t('timers_active_timers')}</span>
           <span className="badge badge-blue">{allTimers.length}</span>
         </div>
 

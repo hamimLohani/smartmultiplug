@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 function EditIcon() {
   return (
@@ -18,6 +19,7 @@ function CheckIcon() {
 }
 
 export default function PlugCard({ plugNum, label, state, isPending, hasFailed, disabled, onToggle, onRename }) {
+  const { lang, t } = useLanguage();
   const [editing, setEditing]   = useState(false);
   const [nameVal, setNameVal]   = useState(label);
   const inputRef                = useRef(null);
@@ -51,9 +53,15 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
 
       {/* Top Row: Plug Number and Status Dot */}
       <div className="plug-card-top">
-        <span className="plug-number-label">Outlet {plugNum}</span>
+        <span className="plug-number-label">
+          {lang === 'bn' ? `সকেট ${plugNum}` : `Outlet ${plugNum}`}
+        </span>
         <div className="plug-status-indicator">
-          <span className="plug-status-text">{isOn ? 'Active' : 'Idle'}</span>
+          <span className="plug-status-text">
+            {isOn 
+              ? (lang === 'bn' ? 'চলমান' : 'Active') 
+              : (lang === 'bn' ? 'নিষ্ক্রিয়' : 'Idle')}
+          </span>
           <div className="plug-status-dot" />
         </div>
       </div>
@@ -72,7 +80,11 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
               maxLength={20}
             />
           ) : (
-            <span className="plug-name" onClick={startEdit} title="Tap to rename">
+            <span 
+              className="plug-name" 
+              onClick={startEdit} 
+              title={lang === 'bn' ? 'নাম পরিবর্তন করতে ট্যাপ করুন' : 'Tap to rename'}
+            >
               {label}
             </span>
           )}
@@ -90,11 +102,13 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
       <div className="plug-card-bottom">
         <div className="plug-state-info">
           <span className="plug-state-label">
-            {isPending ? 'Updating…' : isOn ? 'On' : 'Off'}
+            {isPending 
+              ? (lang === 'bn' ? 'পরিবর্তন হচ্ছে…' : 'Updating…') 
+              : (isOn ? t('on') : t('off'))}
           </span>
           {hasFailed && (
             <span className="plug-pending-note">
-              ⚠ Unresponsive
+              {lang === 'bn' ? '⚠ সাড়া দিচ্ছে না' : '⚠ Unresponsive'}
             </span>
           )}
         </div>

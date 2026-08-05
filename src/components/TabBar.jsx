@@ -1,5 +1,6 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 
 function IconHome({ active }) {
   return (
@@ -28,22 +29,24 @@ function IconSettings({ active }) {
   );
 }
 
-const NAV_ITEMS = [
-  { to: '/',         label: 'Home',     Icon: IconHome    },
-  { to: '/timers',   label: 'Timers',   Icon: IconTimer   },
-  { to: '/settings', label: 'Settings', Icon: IconSettings },
-];
-
 export default function TabBar() {
+  const { t } = useLanguage();
+
+  const navItems = [
+    { to: '/',         label: t('tab_home'),     idKey: 'home',     Icon: IconHome    },
+    { to: '/timers',   label: t('tab_timers'),   idKey: 'timers',   Icon: IconTimer   },
+    { to: '/settings', label: t('tab_settings'), idKey: 'settings', Icon: IconSettings },
+  ];
+
   return (
     <nav className="tab-bar" role="navigation" aria-label="Main navigation">
-      {NAV_ITEMS.map(({ to, label, Icon }) => (
+      {navItems.map(({ to, label, idKey, Icon }) => (
         <NavLink
           key={to}
           to={to}
           end={to === '/'}
           className={({ isActive }) => `tab-item ${isActive ? 'active' : ''}`}
-          id={`tab-${label.toLowerCase()}`}
+          id={`tab-${idKey}`}
         >
           {({ isActive }) => (
             <>

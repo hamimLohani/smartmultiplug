@@ -1,32 +1,23 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
-function formatCountdown(seconds) {
+const DAYS_TRANSLATIONS = {
+  bn: { mon: 'সোম', tue: 'মঙ্গল', wed: 'বুধ', thu: 'বৃহ', fri: 'শুক্র', sat: 'শনি', sun: 'রবি' },
+  en: { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' }
+};
+
+function formatCountdown(seconds, lang) {
   if (!seconds || seconds <= 0) return '0:00';
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
+  if (h > 0) {
+    return lang === 'bn' ? `${h}ঘণ্টা ${m}মিনিট` : `${h}h ${m}m`;
+  }
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function formatScheduleLabel(timer) {
-  const repeatLabel =
-    timer.repeat === 'once'   ? 'once'         :
-    timer.repeat === 'daily'  ? 'every day'    :
-    Array.isArray(timer.days) ? timer.days.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') :
-    '';
-  const actionLabel = timer.action === 'ON' ? 'ON' : 'OFF';
-  const timeLabel = (() => {
-    if (!timer.time) return '';
-    const [hh, mm] = timer.time.split(':').map(Number);
-    const ampm = hh >= 12 ? 'PM' : 'AM';
-    const h12  = hh % 12 || 12;
-    return `${h12}:${String(mm).padStart(2,'0')} ${ampm}`;
-  })();
-  return `${timer.plugLabel || `Plug ${timer.plugNum}`} — ${actionLabel} ${repeatLabel ? `${repeatLabel}` : ''} at ${timeLabel}`;
-}
-
-function CountdownTimer({ seconds: initialSeconds }) {
+function CountdownTimer({ seconds: initialSeconds, lang }) {
   const [seconds, setSeconds] = useState(initialSeconds);
 
   useEffect(() => {
@@ -41,7 +32,7 @@ function CountdownTimer({ seconds: initialSeconds }) {
 
   return (
     <span className="active-timer-countdown">
-      {formatCountdown(seconds)}
+      {formatCountdown(seconds, lang)}
     </span>
   );
 }
@@ -56,22 +47,38 @@ function TrashIcon() {
 }
 
 export default function ActiveTimersList({ timers, timerStates, onDelete }) {
+  const { lang, t } = useLanguage();
+
   if (!timers || timers.length === 0) {
     return (
       <div className="empty-state">
         <div className="empty-state-icon">⏰</div>
-        <p className="empty-state-text">No active timers</p>
+        <p className="empty-state-text">{t('timers_no_active')}</p>
         <p style={{ fontSize: 12, color: 'var(--clr-text-subtle)' }}>
-          Add a delay or schedule above to automate your outlets.
+          {lang === 'bn'
+            ? 'আউটলেট স্বয়ংক্রিয় করতে উপরে একটি টাইমার বা শিডিউল যোগ করুন।'
+            : 'Add a delay or schedule above to automate your outlets.'}
         </p>
       </div>
     );
   }
 
+  const getRepeatLabel = (timer) => {
+    if (timer.repeat === 'once') return t('timers_once');
+    if (timer.repeat === 'daily') return t('timers_everyday');
+    if (Array.isArray(timer.days)) {
+      return timer.days
+        .map((d) => DAYS_TRANSLATIONS[lang]?.[d] || d)
+        .join(', ');
+    }
+    return '';
+  };
+
   return (
     <div className="scroll-list">
       {timers.map((timer) => {
         const isDelay = timer.type === 'delay';
+        const localizedPlugName = timer.plugLabel || (lang === 'bn' ? `প্লাগ ${timer.plugNum}` : `Plug ${timer.plugNum}`);
 
         return (
           <div key={timer.id} className="active-timer-item">
@@ -82,19 +89,23 @@ export default function ActiveTimersList({ timers, timerStates, onDelete }) {
               <div className="active-timer-text" style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                   <span className="active-timer-desc" style={{ fontWeight: 600 }}>
-                    {timer.plugLabel || `Plug ${timer.plugNum}`}
+                    {localizedPlugName}
                   </span>
                   <span className={`badge ${timer.action === 'ON' ? 'badge-green' : 'badge-red'}`} style={{ fontSize: 10, padding: '1px 6px', lineHeight: 1 }}>
-                    {timer.action === 'ON' ? 'ON' : 'OFF'}
+                    {timer.action === 'ON' ? t('on') : t('off')}
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
                   {isDelay ? (
                     <>
-                      <span style={{ fontSize: 12, color: 'var(--clr-text-muted)' }}>Turns {timer.action.toLowerCase()} in</span>
+                      <span style={{ fontSize: 12, color: 'var(--clr-text-muted)' }}>
+                        {lang === 'bn'
+                          ? `${timer.action === 'ON' ? 'চালু' : 'বন্ধ'} হতে বাকি`
+                          : `Turns ${timer.action.toLowerCase()} in`}
+                      </span>
                       {timer.remainingSeconds !== undefined && (
-                        <CountdownTimer seconds={timer.remainingSeconds} />
+                        <CountdownTimer seconds={timer.remainingSeconds} lang={lang} />
                       )}
                     </>
                   ) : (
@@ -109,7 +120,7 @@ export default function ActiveTimersList({ timers, timerStates, onDelete }) {
                         })()}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--clr-text-muted)' }}>
-                        ({timer.repeat === 'once' ? 'once' : timer.repeat === 'daily' ? 'every day' : Array.isArray(timer.days) ? timer.days.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ') : ''})
+                        ({getRepeatLabel(timer)})
                       </span>
                     </>
                   )}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 function GoogleIcon() {
@@ -16,6 +17,7 @@ function GoogleIcon() {
 
 export default function SignUp() {
   const { register, loginWithGoogle } = useAuth();
+  const { lang, setLang, t } = useLanguage();
   const navigate = useNavigate();
 
   const [email, setEmail]         = useState('');
@@ -27,12 +29,12 @@ export default function SignUp() {
 
   const validate = () => {
     const e = {};
-    if (!email)                   e.email    = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
-    if (!password)                e.password = 'Password is required';
-    else if (password.length < 6) e.password = 'Password must be at least 6 characters';
-    if (!confirm)                 e.confirm  = 'Please confirm your password';
-    else if (confirm !== password) e.confirm = 'Passwords do not match';
+    if (!email)                   e.email    = lang === 'bn' ? 'ইমেইল আবশ্যক' : 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = lang === 'bn' ? 'সঠিক ইমেইল ঠিকানা দিন' : 'Enter a valid email';
+    if (!password)                e.password = lang === 'bn' ? 'পাসওয়ার্ড আবশ্যক' : 'Password is required';
+    else if (password.length < 6) e.password = lang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে' : 'Password must be at least 6 characters';
+    if (!confirm)                 e.confirm  = lang === 'bn' ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Please confirm your password';
+    else if (confirm !== password) e.confirm = lang === 'bn' ? 'পাসওয়ার্ড দুটি মেলেনি' : 'Passwords do not match';
     return e;
   };
 
@@ -48,7 +50,7 @@ export default function SignUp() {
     } catch (err) {
       console.error('Registration failed:', err);
       const msg = err.code === 'auth/email-already-in-use'
-        ? 'This email is already registered. Try signing in instead.'
+        ? (lang === 'bn' ? 'এই ইমেইলটি ইতিমধ্যে ব্যবহার করা হয়েছে। লগইন করার চেষ্টা করুন।' : 'This email is already registered. Try signing in instead.')
         : `Registration failed: ${err.message || 'Please try again.'}`;
       setErrors({ general: msg });
     } finally {
@@ -74,94 +76,138 @@ export default function SignUp() {
     <div className="auth-page">
       <div className="bg-mesh" />
 
-      <div className="auth-card">
-        <div className="auth-logo">
-          <div className="auth-logo-icon">🔌</div>
-          <div>
-            <p className="auth-title">Create Account</p>
-            <p className="auth-subtitle">Start controlling your smart plugs</p>
+      {/* Header */}
+      <header className="auth-header">
+        <div className="auth-header-content">
+          <div className="auth-brand">
+            <span className="auth-brand-logo">🔌</span>
+            <span className="auth-brand-name">{t('login_title')}</span>
+          </div>
+          <div className="lang-switcher-wrap">
+            <button
+              className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
+              onClick={() => setLang('bn')}
+            >
+              বাংলা
+            </button>
+            <button
+              className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+              onClick={() => setLang('en')}
+            >
+              English
+            </button>
           </div>
         </div>
+      </header>
 
-        <form className="auth-form" onSubmit={handleSignUp} noValidate>
-          {errors.general && (
-            <div
-              className="badge badge-red"
-              style={{ justifyContent: 'center', padding: '10px 14px', borderRadius: 'var(--radius-md)', width: '100%' }}
-            >
-              ⚠️ {errors.general}
+      <div className="auth-container" style={{ maxWidth: '460px' }}>
+        <div className="auth-card">
+          <div className="auth-logo">
+            <div className="auth-logo-icon">🔌</div>
+            <div>
+              <p className="auth-title">{lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Create Account'}</p>
+              <p className="auth-subtitle">{t('signup_subtitle')}</p>
             </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-email">Email</label>
-            <input
-              id="signup-email"
-              type="email"
-              autoComplete="email"
-              className={`form-input ${errors.email ? 'error' : ''}`}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            {errors.email && <span className="form-error">⚠ {errors.email}</span>}
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-password">Password</label>
-            <input
-              id="signup-password"
-              type="password"
-              autoComplete="new-password"
-              className={`form-input ${errors.password ? 'error' : ''}`}
-              placeholder="At least 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {errors.password && <span className="form-error">⚠ {errors.password}</span>}
-          </div>
+          <form className="auth-form" onSubmit={handleSignUp} noValidate>
+            {errors.general && (
+              <div
+                className="badge badge-red"
+                style={{ justifyContent: 'center', padding: '10px 14px', borderRadius: 'var(--radius-md)', width: '100%' }}
+              >
+                ⚠️ {errors.general}
+              </div>
+            )}
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="signup-confirm">Confirm Password</label>
-            <input
-              id="signup-confirm"
-              type="password"
-              autoComplete="new-password"
-              className={`form-input ${errors.confirm ? 'error' : ''}`}
-              placeholder="••••••••"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-            />
-            {errors.confirm && <span className="form-error">⚠ {errors.confirm}</span>}
-          </div>
+            <div className="form-group">
+              <label className="form-label" htmlFor="signup-email">{t('login_email')}</label>
+              <input
+                id="signup-email"
+                type="email"
+                autoComplete="email"
+                className={`form-input ${errors.email ? 'error' : ''}`}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              {errors.email && <span className="form-error">⚠ {errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="signup-password">{t('login_password')}</label>
+              <input
+                id="signup-password"
+                type="password"
+                autoComplete="new-password"
+                className={`form-input ${errors.password ? 'error' : ''}`}
+                placeholder={lang === 'bn' ? 'কমপক্ষে ৬ অক্ষর' : 'At least 6 characters'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {errors.password && <span className="form-error">⚠ {errors.password}</span>}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="signup-confirm">{t('signup_confirm')}</label>
+              <input
+                id="signup-confirm"
+                type="password"
+                autoComplete="new-password"
+                className={`form-input ${errors.confirm ? 'error' : ''}`}
+                placeholder="••••••••"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+              />
+              {errors.confirm && <span className="form-error">⚠ {errors.confirm}</span>}
+            </div>
+
+            <button
+              id="signup-submit"
+              type="submit"
+              className="btn btn-primary btn-full btn-lg"
+              disabled={loading}
+            >
+              {loading ? <span className="spinner" /> : t('signup_btn')}
+            </button>
+          </form>
+
+          <div className="divider" style={{ margin: '20px 0' }}>{t('login_or')}</div>
 
           <button
-            id="signup-submit"
-            type="submit"
-            className="btn btn-primary btn-full btn-lg"
-            disabled={loading}
+            id="signup-google"
+            type="button"
+            className="btn-google"
+            onClick={handleGoogle}
+            disabled={googleLoading}
           >
-            {loading ? <span className="spinner" /> : 'Create Account'}
+            {googleLoading ? <span className="spinner" /> : <><GoogleIcon /> {t('login_google')}</>}
           </button>
-        </form>
 
-        <div className="divider" style={{ margin: '20px 0' }}>or</div>
-
-        <button
-          id="signup-google"
-          type="button"
-          className="btn-google"
-          onClick={handleGoogle}
-          disabled={googleLoading}
-        >
-          {googleLoading ? <span className="spinner" /> : <><GoogleIcon /> Continue with Google</>}
-        </button>
-
-        <p className="auth-footer">
-          Already have an account?{' '}
-          <Link to="/login" className="auth-link">Sign in</Link>
-        </p>
+          <p className="auth-footer">
+            {t('signup_has_acc')}{' '}
+            <Link to="/login" className="auth-link">{t('signup_login_link')}</Link>
+          </p>
+        </div>
       </div>
+
+      {/* Footer */}
+      <footer className="auth-footer">
+        <div className="auth-footer-content">
+          <div className="auth-footer-links">
+            <a href="mailto:support@smartmultiplug.com">{lang === 'bn' ? 'সহায়তা' : 'Support'}</a>
+            <span style={{ color: 'var(--clr-border)' }}>|</span>
+            <a href="#privacy">{lang === 'bn' ? 'গোপনীয়তা নীতি' : 'Privacy Policy'}</a>
+            <span style={{ color: 'var(--clr-border)' }}>|</span>
+            <a href="#terms">{lang === 'bn' ? 'ব্যবহারের শর্তাবলী' : 'Terms of Service'}</a>
+          </div>
+          <p className="auth-footer-text">
+            {lang === 'bn'
+              ? '© ২০২৬ স্মার্ট মাল্টি-প্লাগ। সর্বস্বত্ব সংরক্ষিত।'
+              : '© 2026 Smart Multi-Plug. All rights reserved.'}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

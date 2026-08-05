@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DeviceProvider, useDevice } from './contexts/DeviceContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import TabBar from './components/TabBar';
 
@@ -143,41 +144,43 @@ function AppShell() {
 export default function App() {
   if (!isFirebaseConfigured) {
     return (
-      <>
+      <LanguageProvider>
         <SetupGuide />
         <Toaster position="top-center" />
-      </>
+      </LanguageProvider>
     );
   }
 
   return (
-    <AuthProvider>
-      <DeviceProvider>
-        <AppShell />
+    <LanguageProvider>
+      <AuthProvider>
+        <DeviceProvider>
+          <AppShell />
 
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            duration: 3500,
-            style: {
-              background: 'var(--clr-surface-2)',
-              color:       'var(--clr-text)',
-              border:      '1px solid var(--clr-border-md)',
-              borderRadius:'var(--radius-md)',
-              fontFamily:  'var(--font)',
-              fontSize:    '14px',
-              boxShadow:   'var(--shadow-md)',
-              padding:     '12px 16px',
-            },
-            success: {
-              iconTheme: { primary: 'var(--clr-green)', secondary: 'transparent' },
-            },
-            error: {
-              iconTheme: { primary: 'var(--clr-red)', secondary: 'transparent' },
-            },
-          }}
-        />
-      </DeviceProvider>
-    </AuthProvider>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              duration: 3500,
+              style: {
+                background: 'var(--clr-surface-2)',
+                color:       'var(--clr-text)',
+                border:      '1px solid var(--clr-border-md)',
+                borderRadius:'var(--radius-md)',
+                fontFamily:  'var(--font)',
+                fontSize:    '14px',
+                boxShadow:   'var(--shadow-md)',
+                padding:     '12px 16px',
+              },
+              success: {
+                iconTheme: { primary: 'var(--clr-green)', secondary: 'transparent' },
+              },
+              error: {
+                iconTheme: { primary: 'var(--clr-red)', secondary: 'transparent' },
+              },
+            }}
+          />
+        </DeviceProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

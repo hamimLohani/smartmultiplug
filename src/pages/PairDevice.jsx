@@ -4,6 +4,7 @@ import { db, functions } from '../firebase';
 import { ref, get, update } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 const CODE_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
@@ -69,6 +70,7 @@ function Step({ n, label, active, done }) {
 
 export default function PairDevice() {
   const { user } = useAuth();
+  const { lang, t } = useLanguage();
   const navigate = useNavigate();
 
   const [code, setCode]         = useState('');
@@ -76,11 +78,6 @@ export default function PairDevice() {
   const [step, setStep]         = useState(1); // 1=enter code, 2=success
   const [error, setError]       = useState('');
   const [pairedId, setPairedId] = useState('');
-
-  const formatCode = (val) => {
-    const clean = val.replace(/[^A-Fa-f0-9]/g, '').slice(0, 8).toUpperCase();
-    return clean ? `SP-${clean}` : '';
-  };
 
   const handleInput = (ev) => {
     const raw = ev.target.value.toUpperCase();
@@ -101,7 +98,11 @@ export default function PairDevice() {
     }
 
     if (!CODE_REGEX.test(codeToPair)) {
-      setError('Enter a valid pairing code in the format SP-XXXXXXXX or SP4-XXXXXXXX (shown on your device screen).');
+      setError(
+        lang === 'bn'
+          ? 'অনুগ্রহ করে সঠিক ফরম্যাটে পেয়ারিং কোড দিন, যেমন SP-XXXXXXXX বা SP4-XXXXXXXX (এটি প্লাগের স্ক্রিনে দেখতে পাবেন)।'
+          : 'Enter a valid pairing code in the format SP-XXXXXXXX or SP4-XXXXXXXX (shown on your device screen).'
+      );
       return;
     }
 
@@ -127,11 +128,19 @@ export default function PairDevice() {
     } catch (err) {
       console.error('[PairDevice] Claim error:', err);
       if (err.message?.includes('already-claimed') || err.code?.includes('already-claimed')) {
-        setError('This device is already paired to another account. Contact support if this is your device.');
+        setError(
+          lang === 'bn'
+            ? 'এই মাল্টি-প্লাগটি ইতিমধ্যে অন্য একটি অ্যাকাউন্টে যুক্ত করা আছে। প্রয়োজনে সাপোর্ট টিমের সাথে যোগাযোগ করুন।'
+            : 'This device is already paired to another account. Contact support if this is your device.'
+        );
       } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
-        setError('Permission denied. Make sure you are logged in and the device is provisioned.');
+        setError(
+          lang === 'bn'
+            ? 'অনুমতি নেই। আপনার অ্যাকাউন্ট লগইন করা আছে কিনা নিশ্চিত করুন।'
+            : 'Permission denied. Make sure you are logged in and the device is provisioned.'
+        );
       } else {
-        setError(`Something went wrong: ${err.message}`);
+        setError(lang === 'bn' ? `দুঃখিত, কোনো সমস্যা হয়েছে: ${err.message}` : `Something went wrong: ${err.message}`);
       }
     } finally {
       setLoading(false);
@@ -146,9 +155,13 @@ export default function PairDevice() {
           <div className="pair-success">
             <div className="pair-success-icon">✓</div>
             <div>
-              <p style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>Device Paired!</p>
+              <p style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+                {lang === 'bn' ? 'ডিভাইস সফলভাবে যুক্ত হয়েছে!' : 'Device Paired!'}
+              </p>
               <p style={{ color: 'var(--clr-text-muted)', fontSize: 15, lineHeight: 1.6 }}>
-                Your Smart Multi-Plug is ready to go. You can now control all 4 outlets from the dashboard.
+                {lang === 'bn'
+                  ? 'আপনার স্মার্ট মাল্টি-প্লাগটি সফলভাবে সেট করা হয়েছে। এখন আপনি ড্যাশবোর্ড থেকে এটি নিয়ন্ত্রণ করতে পারবেন।'
+                  : 'Your Smart Multi-Plug is ready to go. You can now control your outlets from the dashboard.'}
               </p>
             </div>
             <div style={{
@@ -168,7 +181,7 @@ export default function PairDevice() {
               className="btn btn-primary btn-full btn-lg"
               onClick={() => navigate('/')}
             >
-              Go to Dashboard →
+              {lang === 'bn' ? 'ড্যাশবোর্ডে যান →' : 'Go to Dashboard →'}
             </button>
           </div>
         </div>
@@ -184,22 +197,39 @@ export default function PairDevice() {
         <div className="pair-icon">🔌</div>
 
         <p style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}>
-          Pair Your Device
+          {t('pair_title')}
         </p>
         <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
-          Find the pairing code on your device's screen and enter it below.
+          {lang === 'bn'
+            ? 'প্লাগের স্ক্রিনে অথবা স্টিকারে থাকা কোডটি সংগ্রহ করে নিচে টাইপ করুন।'
+            : 'Find the pairing code on your device\'s screen and enter it below.'}
         </p>
 
         {/* Steps */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-          <Step n={1} label="Power on your Smart Multi-Plug" active={true} done={false} />
-          <Step n={2} label="Wait for the code to appear on screen" active={true} done={false} />
-          <Step n={3} label="Enter the code below" active={true} done={false} />
+          <Step 
+            n={1} 
+            label={lang === 'bn' ? 'আপনার স্মার্ট মাল্টি-প্লাগটি চালু করুন' : 'Power on your Smart Multi-Plug'} 
+            active={true} 
+            done={false} 
+          />
+          <Step 
+            n={2} 
+            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ৮ সংখ্যার কোডটি দেখুন' : 'Wait for the code to appear on screen'} 
+            active={true} 
+            done={false} 
+          />
+          <Step 
+            n={3} 
+            label={lang === 'bn' ? 'নিচের বক্সে কোডটি লিখুন' : 'Enter the code below'} 
+            active={true} 
+            done={false} 
+          />
         </div>
 
         <form onSubmit={handlePair}>
           <div className="form-group" style={{ marginBottom: 16 }}>
-            <label className="form-label" htmlFor="pair-code">Pairing Code</label>
+            <label className="form-label" htmlFor="pair-code">{t('pair_sec_code')}</label>
             <input
               id="pair-code"
               type="text"
@@ -225,14 +255,14 @@ export default function PairDevice() {
             className="btn btn-primary btn-full btn-lg"
             disabled={loading || code.length < 8}
           >
-            {loading ? <><span className="spinner" /> Pairing…</> : 'Pair Device'}
+            {loading ? <><span className="spinner" /> {lang === 'bn' ? 'সংযোগ হচ্ছে…' : 'Pairing…'}</> : t('pair_btn')}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--clr-text-subtle)', marginTop: 20 }}>
-          Having trouble?{' '}
+          {lang === 'bn' ? 'কোনো সমস্যা হচ্ছে?' : 'Having trouble?'}{' '}
           <a href="mailto:support@smartmultiplug.com" style={{ color: 'var(--clr-accent)' }}>
-            Contact support
+            {lang === 'bn' ? 'সাপোর্টে ইমেইল করুন' : 'Contact support'}
           </a>
         </p>
       </div>

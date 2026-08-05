@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { useMqttSubscribe, useMqttPublish } from '../hooks/useMqtt';
 import OnlineIndicator from '../components/OnlineIndicator';
 import PlugCard from '../components/PlugCard';
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
   const { device, deviceId, plugLabels, updatePlugLabel, loading, numPlugs } = useDevice();
+  const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
   // Plug states: null = unknown, true = on, false = off
@@ -95,8 +97,8 @@ export default function Dashboard() {
           {/* Header */}
           <div className="page-header">
             <div>
-              <h1 className="page-title">My Plugs</h1>
-              <p className="page-subtitle">No device paired</p>
+              <h1 className="page-title">{t('dash_title')}</h1>
+              <p className="page-subtitle">{t('dash_paired')}</p>
             </div>
           </div>
 
@@ -109,16 +111,16 @@ export default function Dashboard() {
             marginTop: 40,
           }}>
             <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>🔌</span>
-            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>No Device Paired</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('dash_paired')}</h2>
             <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
-              Pair your Smart Multi-Plug to monitor and control your outlets, set timers, and configure schedules.
+              {t('dash_paired_desc')}
             </p>
             <button 
               className="btn btn-primary" 
               onClick={() => navigate('/pair')}
               style={{ width: '100%', maxWidth: 200, margin: '0 auto' }}
             >
-              Pair Device
+              {t('dash_btn_pair')}
             </button>
           </div>
         </div>
@@ -129,6 +131,9 @@ export default function Dashboard() {
   const getDisplayState = (n) =>
     n in optimistic ? optimistic[n] : plugStates[n] ?? false;
 
+  const plugsList = Array.from({ length: numPlugs }, (_, i) => i + 1);
+  const allOn = plugsList.every(n => getDisplayState(n));
+
   return (
     <div className="page-wrap">
       <div className="bg-mesh" />
@@ -137,7 +142,7 @@ export default function Dashboard() {
         {/* Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">My Plugs</h1>
+            <h1 className="page-title">{t('dash_title')}</h1>
             <p className="page-subtitle">
               {device?.name || 'Smart Multi-Plug'}
             </p>
@@ -160,7 +165,11 @@ export default function Dashboard() {
             color: 'var(--clr-amber)',
           }}>
             <span>⚡</span>
-            <span>Connecting to your device… Controls will be available shortly.</span>
+            <span>
+              {lang === 'bn' 
+                ? 'ডিভাইসের সাথে সংযোগ স্থাপন করা হচ্ছে… নিয়ন্ত্রণ ফিচারসমূহ কিছুক্ষণের মধ্যেই উপলব্ধ হবে।' 
+                : 'Connecting to your device… Controls will be available shortly.'}
+            </span>
           </div>
         )}
 
@@ -168,14 +177,14 @@ export default function Dashboard() {
         <div className="stats-grid">
           {[
             {
-              label: 'Active Outlets',
-              value: Array.from({ length: numPlugs }, (_, i) => i + 1).filter(n => getDisplayState(n)).length,
+              label: lang === 'bn' ? 'সক্রিয় সকেট' : 'Active Outlets',
+              value: plugsList.filter(n => getDisplayState(n)).length,
               icon: '⚡',
               color: 'var(--clr-accent)',
               bg: 'var(--clr-accent-dim)',
             },
             {
-              label: 'Total Outlets',
+              label: lang === 'bn' ? 'মোট সকেট' : 'Total Outlets',
               value: numPlugs,
               icon: '🔌',
               color: 'var(--clr-text-muted)',
@@ -194,26 +203,28 @@ export default function Dashboard() {
 
         {/* Plug grid */}
         <div className="section-header">
-          <span className="section-title">Outlets</span>
+          <span className="section-title">
+            {lang === 'bn' ? 'আউটলেটসমূহ' : 'Outlets'}
+          </span>
           <button
             className="btn btn-sm btn-secondary"
             onClick={() => {
-              const plugs = Array.from({ length: numPlugs }, (_, i) => i + 1);
-              const allOn = plugs.every(n => getDisplayState(n));
-              plugs.forEach(n => handleToggle(n, !allOn));
+              plugsList.forEach(n => handleToggle(n, !allOn));
             }}
             disabled={!mqttOk}
           >
-            {Array.from({ length: numPlugs }, (_, i) => i + 1).every(n => getDisplayState(n)) ? 'Turn All Off' : 'Turn All On'}
+            {allOn 
+              ? (lang === 'bn' ? 'সব বন্ধ করুন' : 'Turn All Off') 
+              : (lang === 'bn' ? 'সব চালু করুন' : 'Turn All On')}
           </button>
         </div>
 
         <div className="plug-grid">
-          {Array.from({ length: numPlugs }, (_, i) => i + 1).map((n) => (
+          {plugsList.map((n) => (
             <PlugCard
               key={n}
               plugNum={n}
-              label={plugLabels[n]}
+              label={plugLabels[n] || (lang === 'bn' ? `প্লাগ ${n}` : `Plug ${n}`)}
               state={getDisplayState(n)}
               isPending={!!pending[n]}
               hasFailed={!!failed[n]}
@@ -238,7 +249,7 @@ export default function Dashboard() {
           <span style={{ fontSize: 20 }}>ℹ️</span>
           <div>
             <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', lineHeight: 1.5 }}>
-              Device ID: <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--clr-text-subtle)' }}>{deviceId}</span>
+              {lang === 'bn' ? 'ডিভাইস আইডি:' : 'Device ID:'} <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--clr-text-subtle)' }}>{deviceId}</span>
             </p>
           </div>
         </div>
