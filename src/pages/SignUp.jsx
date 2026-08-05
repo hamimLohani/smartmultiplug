@@ -31,8 +31,23 @@ export default function SignUp() {
     const e = {};
     if (!email)                   e.email    = lang === 'bn' ? 'ইমেইল আবশ্যক' : 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = lang === 'bn' ? 'সঠিক ইমেইল ঠিকানা দিন' : 'Enter a valid email';
-    if (!password)                e.password = lang === 'bn' ? 'পাসওয়ার্ড আবশ্যক' : 'Password is required';
-    else if (password.length < 6) e.password = lang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে' : 'Password must be at least 6 characters';
+    
+    if (!password) {
+      e.password = lang === 'bn' ? 'পাসওয়ার্ড আবশ্যক' : 'Password is required';
+    } else {
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasNumber = /[0-9]/.test(password);
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+      
+      if (password.length < 8) {
+        e.password = lang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে' : 'Password must be at least 8 characters';
+      } else if (!hasUppercase || !hasNumber || !hasSpecial) {
+        e.password = lang === 'bn' 
+          ? 'পাসওয়ার্ডে কমপক্ষে একটি বড় হাতের অক্ষর (Capital Letter), একটি সংখ্যা (Number) এবং একটি চিহ্ন (Symbol) থাকতে হবে' 
+          : 'Password must contain at least one capital letter, one number, and one symbol (e.g. @, #, $, !)';
+      }
+    }
+
     if (!confirm)                 e.confirm  = lang === 'bn' ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Please confirm your password';
     else if (confirm !== password) e.confirm = lang === 'bn' ? 'পাসওয়ার্ড দুটি মেলেনি' : 'Passwords do not match';
     return e;
@@ -141,11 +156,46 @@ export default function SignUp() {
                 type="password"
                 autoComplete="new-password"
                 className={`form-input ${errors.password ? 'error' : ''}`}
-                placeholder={lang === 'bn' ? 'কমপক্ষে ৬ অক্ষর' : 'At least 6 characters'}
+                placeholder={lang === 'bn' ? 'কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড' : 'At least 8 chars strong password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
               {errors.password && <span className="form-error">⚠ {errors.password}</span>}
+
+              {password.length > 0 && (
+                <div className="password-requirements" style={{
+                  marginTop: '8px',
+                  padding: '10px 12px',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--clr-border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--clr-text-muted)', marginBottom: '2px' }}>
+                    {lang === 'bn' ? 'পাসওয়ার্ডের শর্তসমূহ:' : 'Password Requirements:'}
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: password.length >= 8 ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                      <span>{password.length >= 8 ? '✅' : '⚪'}</span>
+                      <span>{lang === 'bn' ? '৮+ অক্ষর' : '8+ characters'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[A-Z]/.test(password) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                      <span>{/[A-Z]/.test(password) ? '✅' : '⚪'}</span>
+                      <span>{lang === 'bn' ? 'বড় হাতের অক্ষর (A-Z)' : 'Capital letter (A-Z)'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[0-9]/.test(password) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                      <span>{/[0-9]/.test(password) ? '✅' : '⚪'}</span>
+                      <span>{lang === 'bn' ? 'একটি সংখ্যা (0-9)' : 'Number (0-9)'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[^A-Za-z0-9]/.test(password) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                      <span>{/[^A-Za-z0-9]/.test(password) ? '✅' : '⚪'}</span>
+                      <span>{lang === 'bn' ? 'একটি চিহ্ন (যেমন @, !)' : 'Symbol (e.g. @, !)'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-group">

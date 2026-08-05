@@ -62,9 +62,22 @@ function ChangePasswordModal({ show, onClose, lang, t }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (newPass.length < 6) {
-      toast.error(lang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।' : 'Password must be at least 6 characters.'); 
+    
+    const hasUppercase = /[A-Z]/.test(newPass);
+    const hasNumber = /[0-9]/.test(newPass);
+    const hasSpecial = /[^A-Za-z0-9]/.test(newPass);
+    
+    if (newPass.length < 8) {
+      toast.error(lang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে।' : 'Password must be at least 8 characters.'); 
       return; 
+    }
+    if (!hasUppercase || !hasNumber || !hasSpecial) {
+      toast.error(
+        lang === 'bn' 
+          ? 'পাসওয়ার্ডে কমপক্ষে একটি বড় হাতের অক্ষর (Capital Letter), একটি সংখ্যা (Number) এবং একটি চিহ্ন (Symbol) থাকতে হবে।' 
+          : 'Password must contain at least one capital letter, one number, and one symbol (e.g. @, #, $, !).'
+      );
+      return;
     }
     if (newPass !== confirm) {
       toast.error(lang === 'bn' ? 'পাসওয়ার্ড দুটি মিলছে না।' : 'Passwords do not match.'); 
@@ -102,7 +115,42 @@ function ChangePasswordModal({ show, onClose, lang, t }) {
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cp-new">{t('settings_new_pw')}</label>
-            <input id="cp-new" type="password" className="form-input" placeholder={lang === 'bn' ? 'কমপক্ষে ৬ অক্ষর' : 'At least 6 characters'} value={newPass} onChange={e => setNewPass(e.target.value)} />
+            <input id="cp-new" type="password" className="form-input" placeholder={lang === 'bn' ? 'কমপক্ষে ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড' : 'At least 8 chars strong password'} value={newPass} onChange={e => setNewPass(e.target.value)} />
+            
+            {newPass.length > 0 && (
+              <div className="password-requirements" style={{
+                marginTop: '8px',
+                padding: '10px 12px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--clr-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--clr-text-muted)', marginBottom: '2px' }}>
+                  {lang === 'bn' ? 'পাসওয়ার্ডের শর্তসমূহ:' : 'Password Requirements:'}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: newPass.length >= 8 ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                    <span>{newPass.length >= 8 ? '✅' : '⚪'}</span>
+                    <span>{lang === 'bn' ? '৮+ অক্ষর' : '8+ characters'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[A-Z]/.test(newPass) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                    <span>{/[A-Z]/.test(newPass) ? '✅' : '⚪'}</span>
+                    <span>{lang === 'bn' ? 'বড় হাতের অক্ষর (A-Z)' : 'Capital letter (A-Z)'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[0-9]/.test(newPass) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                    <span>{/[0-9]/.test(newPass) ? '✅' : '⚪'}</span>
+                    <span>{lang === 'bn' ? 'একটি সংখ্যা (0-9)' : 'Number (0-9)'}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: /[^A-Za-z0-9]/.test(newPass) ? 'var(--clr-green)' : 'var(--clr-text-subtle)' }}>
+                    <span>{/[^A-Za-z0-9]/.test(newPass) ? '✅' : '⚪'}</span>
+                    <span>{lang === 'bn' ? 'একটি চিহ্ন (যেমন @, !)' : 'Symbol (e.g. @, !)'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="form-group">
             <label className="form-label" htmlFor="cp-confirm">{t('settings_confirm_pw')}</label>
