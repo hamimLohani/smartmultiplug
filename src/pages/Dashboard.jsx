@@ -12,7 +12,7 @@ const CONFIRM_TIMEOUT_MS = 5000;
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { device, deviceId, plugLabels, updatePlugLabel, loading } = useDevice();
+  const { device, deviceId, plugLabels, updatePlugLabel, loading, numPlugs } = useDevice();
   const publish = useMqttPublish();
 
   // Plug states: null = unknown, true = on, false = off
@@ -169,14 +169,14 @@ export default function Dashboard() {
           {[
             {
               label: 'Active Outlets',
-              value: [1,2,3,4].filter(n => getDisplayState(n)).length,
+              value: Array.from({ length: numPlugs }, (_, i) => i + 1).filter(n => getDisplayState(n)).length,
               icon: '⚡',
               color: 'var(--clr-accent)',
               bg: 'var(--clr-accent-dim)',
             },
             {
               label: 'Total Outlets',
-              value: 4,
+              value: numPlugs,
               icon: '🔌',
               color: 'var(--clr-text-muted)',
               bg: 'var(--clr-surface-2)',
@@ -198,17 +198,18 @@ export default function Dashboard() {
           <button
             className="btn btn-sm btn-secondary"
             onClick={() => {
-              const allOn = [1,2,3,4].every(n => getDisplayState(n));
-              [1,2,3,4].forEach(n => handleToggle(n, !allOn));
+              const plugs = Array.from({ length: numPlugs }, (_, i) => i + 1);
+              const allOn = plugs.every(n => getDisplayState(n));
+              plugs.forEach(n => handleToggle(n, !allOn));
             }}
             disabled={!mqttOk}
           >
-            {[1,2,3,4].every(n => getDisplayState(n)) ? 'Turn All Off' : 'Turn All On'}
+            {Array.from({ length: numPlugs }, (_, i) => i + 1).every(n => getDisplayState(n)) ? 'Turn All Off' : 'Turn All On'}
           </button>
         </div>
 
         <div className="plug-grid">
-          {[1, 2, 3, 4].map((n) => (
+          {Array.from({ length: numPlugs }, (_, i) => i + 1).map((n) => (
             <PlugCard
               key={n}
               plugNum={n}

@@ -164,7 +164,7 @@ function TimeSpinner({ value, onChange }) {
 export default function Timers() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { deviceId, plugLabels } = useDevice();
+  const { deviceId, plugLabels, numPlugs } = useDevice();
   const publish = useMqttPublish();
 
   const [mode, setMode] = useState('delay');    // 'delay' | 'schedule'
@@ -396,7 +396,7 @@ export default function Timers() {
           <div style={{ marginTop: 20 }}>
             <p className="timer-section-label">Outlet</p>
             <div className="chip-group">
-              {[1, 2, 3, 4].map(n => (
+              {Array.from({ length: numPlugs }, (_, i) => i + 1).map(n => (
                 <button
                   key={n}
                   id={`timer-plug-${n}`}

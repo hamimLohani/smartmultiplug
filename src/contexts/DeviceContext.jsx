@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ref, onValue, off, update } from 'firebase/database';
+import { ref, onValue, off, update, remove } from 'firebase/database';
 import { db, isFirebaseConfigured } from '../firebase';
 import { useAuth } from './AuthContext';
+import toast from 'react-hot-toast';
 
 const DeviceContext = createContext(null);
 
@@ -12,6 +13,14 @@ export function DeviceProvider({ children }) {
   const [plugLabels, setPlugLabels] = useState({
     1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4',
   });
+
+  const getNumPlugsFromId = (id) => {
+    if (id?.startsWith('SP2-')) return 2;
+    if (id?.startsWith('SP3-')) return 3;
+    return 4; // default
+  };
+
+  const numPlugs = deviceId ? getNumPlugsFromId(deviceId) : 4;
 
   useEffect(() => {
     if (!isFirebaseConfigured || !db || !user) {
@@ -32,10 +41,11 @@ export function DeviceProvider({ children }) {
       setDeviceId(id);
       setDevice(info);
 
-      // Load plug labels
+      // Load plug labels dynamically based on model
       if (info?.plugs) {
         const labels = {};
-        for (let n = 1; n <= 4; n++) {
+        const count = getNumPlugsFromId(id);
+        for (let n = 1; n <= count; n++) {
           labels[n] = info.plugs?.[n]?.label ?? `Plug ${n}`;
         }
         setPlugLabels(labels);
@@ -45,6 +55,46 @@ export function DeviceProvider({ children }) {
     onValue(devicesRef, handleValue);
     return () => off(devicesRef, 'value', handleValue);
   }, [user]);
+
+  // Listen for unpairing triggered from the ESP physical menu
+  useEffect(() => {
+    if (!user || !deviceId || !mqttOk) return;
+
+    let unsubscribe = null;
+
+    import('../mqtt').then(({ subscribe, publish }) => {
+      const topic = `users/${user.uid}/devices/${deviceId}/unpair`;
+      unsubscribe = subscribe(topic, async (msg) => {
+        if (msg === 'unpair') {
+          console.log('[DeviceContext] Received unpair command from device via MQTT');
+          try {
+            const deviceRef = ref(db, `devices/${deviceId}`);
+            const userDeviceRef = ref(db, `users/${user.uid}/devices/${deviceId}`);
+
+            // 1. Remove device pairing details in Firebase DB
+            await update(deviceRef, {
+              claimed_by: null,
+              claimed_at: null,
+            });
+            await remove(userDeviceRef);
+
+            // 2. Clear retained unpair message
+            publish(topic, '', { retain: true });
+
+            // 3. Inform user
+            toast.success('Device was unpaired from the physical menu.');
+            clearDevice();
+          } catch (err) {
+            console.error('[DeviceContext] Error processing unpair from MQTT:', err);
+          }
+        }
+      });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [user, deviceId, mqttOk]);
 
   useEffect(() => {
     if (user && deviceId && mqttOk) {
@@ -76,6 +126,7 @@ export function DeviceProvider({ children }) {
     plugLabels,
     updatePlugLabel,
     clearDevice,
+    numPlugs,
     loading: device === undefined,
     hasPairedDevice: device !== null && device !== undefined,
   };

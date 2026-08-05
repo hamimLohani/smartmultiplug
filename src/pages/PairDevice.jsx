@@ -6,7 +6,7 @@ import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
-const CODE_REGEX = /^SP-[A-Fa-f0-9]{8}$/;
+const CODE_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
 
 async function pairDeviceDirectly(deviceId, uid) {
   const deviceRef = ref(db, `devices/${deviceId}`);
@@ -26,13 +26,23 @@ async function pairDeviceDirectly(deviceId, uid) {
   });
 
   const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
+  
+  // Extract number of plugs from the prefix
+  const getNumPlugs = (id) => {
+    if (id?.startsWith('SP2-')) return 2;
+    if (id?.startsWith('SP3-')) return 3;
+    return 4; // default
+  };
+  const count = getNumPlugs(deviceId);
+  const plugsData = {};
+  for (let i = 1; i <= count; i++) {
+    plugsData[`plugs/${i}/label`] = `Plug ${i}`;
+  }
+
   await update(userDeviceRef, {
     name: 'Smart Multi-Plug',
     paired_at: Date.now(),
-    'plugs/1/label': 'Plug 1',
-    'plugs/2/label': 'Plug 2',
-    'plugs/3/label': 'Plug 3',
-    'plugs/4/label': 'Plug 4',
+    ...plugsData,
   });
 }
 
@@ -73,11 +83,14 @@ export default function PairDevice() {
   };
 
   const handleInput = (ev) => {
-    const raw = ev.target.value;
-    // Strip the prefix if user types it
-    const stripped = raw.replace(/^SP-?/i, '');
-    const clean = stripped.replace(/[^A-Fa-f0-9]/g, '').slice(0, 8).toUpperCase();
-    setCode(clean ? `SP-${clean}` : '');
+    const raw = ev.target.value.toUpperCase();
+    // Detect if user typed a specific prefix, else default to SP-
+    const match = raw.match(/^(SP[234]?-)/i);
+    const prefix = match ? match[1] : 'SP-';
+
+    const stripped = raw.replace(/^SP[234]?-?/i, '');
+    const clean = stripped.replace(/[^A-Fa-f0-9]/g, '').slice(0, 8);
+    setCode(clean ? `${prefix}${clean}` : '');
     setError('');
   };
 
@@ -86,7 +99,7 @@ export default function PairDevice() {
     setError('');
 
     if (!CODE_REGEX.test(code)) {
-      setError('Enter a valid pairing code in the format SP-XXXXXXXX (shown on your device screen).');
+      setError('Enter a valid pairing code in the format SP-XXXXXXXX or SP4-XXXXXXXX (shown on your device screen).');
       return;
     }
 
