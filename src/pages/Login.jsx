@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
+import { useTheme } from '../contexts/ThemeContext';
+
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -19,6 +21,7 @@ function GoogleIcon() {
 export default function Login() {
   const { login, loginWithGoogle } = useAuth();
   const { lang, setLang, t } = useLanguage();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const navigate = useNavigate();
 
   const [email, setEmail]       = useState('');
@@ -95,22 +98,49 @@ export default function Login() {
       <header className="auth-header">
         <div className="auth-header-content">
           <div className="auth-brand">
-            <span className="auth-brand-logo">🔌</span>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-2))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16,
+              boxShadow: 'var(--shadow-accent)',
+            }}>
+              🔌
+            </div>
             <span className="auth-brand-name">{t('login_title')}</span>
           </div>
-          <div className="lang-switcher-wrap">
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Quick Theme Switcher Button */}
             <button
-              className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
-              onClick={() => setLang('bn')}
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              title={lang === 'bn' ? 'থিম পরিবর্তন করুন' : 'Toggle Theme'}
+              style={{ padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--clr-border)', fontSize: 13 }}
             >
-              বাংলা
+              {resolvedTheme === 'dark' ? '🌙' : '☀️'}
             </button>
-            <button
-              className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
-              onClick={() => setLang('en')}
-            >
-              English
-            </button>
+
+            {/* Language Switcher */}
+            <div className="lang-switcher-wrap">
+              <button
+                className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
+                onClick={() => setLang('bn')}
+              >
+                বাংলা
+              </button>
+              <button
+                className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => setLang('en')}
+              >
+                English
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -323,10 +353,35 @@ export default function Login() {
         {/* Login / Reset Password Card */}
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">🔌</div>
-            <div>
-              <p className="auth-title">{t('login_title')}</p>
-              <p className="auth-subtitle">{t('login_subtitle')}</p>
+            <div className="auth-logo-icon" style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              background: 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-2))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32,
+              boxShadow: 'var(--shadow-accent)',
+              marginBottom: 4,
+            }}>
+              🔌
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p className="auth-title" style={{
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, var(--clr-text), var(--clr-text-muted))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                lineHeight: 1.2,
+              }}>
+                {t('login_title')}
+              </p>
+              <p className="auth-subtitle" style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginTop: 6 }}>
+                {t('login_subtitle')}
+              </p>
             </div>
           </div>
 

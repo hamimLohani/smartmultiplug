@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth, db, functions } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
@@ -262,6 +263,7 @@ export default function Settings() {
   const { user, logout }           = useAuth();
   const { device, deviceId, plugLabels, updatePlugLabel, clearDevice } = useDevice();
   const { lang, setLang, t }       = useLanguage();
+  const { theme, setTheme }        = useTheme();
   const navigate                   = useNavigate();
 
   const [showUnpair, setShowUnpair]     = useState(false);
@@ -379,6 +381,53 @@ export default function Settings() {
                 onClick={() => setLang('en')}
               >
                 English
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Appearance / Theme */}
+        <p className="settings-section-title">{lang === 'bn' ? 'থিম ও রূপরেখা' : 'Appearance / Theme'}</p>
+        <div className="settings-group" style={{ marginBottom: 28 }}>
+          <div className="settings-item" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="settings-item-left">
+                <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)', fontSize: 16 }}>🎨</div>
+                <span className="settings-item-label">
+                  {lang === 'bn' ? 'থিম নির্বাচন করুন' : 'Theme Preference'}
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: 'var(--clr-text-muted)', fontWeight: 600 }}>
+                {theme === 'system' 
+                  ? (lang === 'bn' ? 'সিস্টেম ডিফল্ট' : 'System Default')
+                  : (theme === 'dark' ? (lang === 'bn' ? 'ডার্ক মোড' : 'Dark Mode') : (lang === 'bn' ? 'লাইট মোড' : 'Light Mode'))}
+              </span>
+            </div>
+
+            <div className="chip-group" style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              <button
+                type="button"
+                className={`chip ${theme === 'system' ? 'active' : ''}`}
+                onClick={() => setTheme('system')}
+                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
+              >
+                💻 {lang === 'bn' ? 'সিস্টেম' : 'System'}
+              </button>
+              <button
+                type="button"
+                className={`chip ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => setTheme('dark')}
+                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
+              >
+                🌙 {lang === 'bn' ? 'ডার্ক' : 'Dark'}
+              </button>
+              <button
+                type="button"
+                className={`chip ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => setTheme('light')}
+                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
+              >
+                ☀️ {lang === 'bn' ? 'লাইট' : 'Light'}
               </button>
             </div>
           </div>
