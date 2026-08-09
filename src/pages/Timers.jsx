@@ -188,6 +188,7 @@ export default function Timers() {
   // Active timers from RTDB + MQTT
   const [activeTimers, setActiveTimers] = useState([]);
   const [timerStates, setTimerStates] = useState({}); // plug -> MQTT timer state
+  const [mqttSchedules, setMqttSchedules] = useState({}); // plug -> MQTT schedule array from device
   const [online, setOnline] = useState(null);
 
   const lastResponseTimeRef = useRef(null);
@@ -233,7 +234,7 @@ export default function Timers() {
     return () => clearTimeout(initialTimer);
   }, [baseTopic, mqttOk, publish]);
 
-  // Subscribe to timer/state topics for all plugs (live countdown from device)
+  // Subscribe to timer/state and schedule topics for all plugs
   for (let n = 1; n <= 4; n++) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useMqttSubscribe(
@@ -247,6 +248,19 @@ export default function Timers() {
         try {
           const data = JSON.parse(msg);
           setTimerStates((prev) => ({ ...prev, [n]: data }));
+        } catch { /* ignore malformed */ }
+      },
+    );
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMqttSubscribe(
+      baseTopic ? `${baseTopic}/plug/${n}/schedule` : null,
+      (msg) => {
+        try {
+          const data = JSON.parse(msg);
+          if (Array.isArray(data)) {
+            setMqttSchedules((prev) => ({ ...prev, [n]: data }));
+          }
         } catch { /* ignore malformed */ }
       },
     );
@@ -377,6 +391,16 @@ export default function Timers() {
     if (timer.type === 'delay') {
       publish(`${baseTopic}/plug/${timer.plugNum}/timer/set`, { cancel: true });
       setTimerStates((prev) => { const c = { ...prev }; delete c[timer.plugNum]; return c; });
+    } else if (timer.isFromDevice) {
+      const currentList = mqttSchedules[timer.plugNum] || [];
+      const updatedList = currentList.map((item, idx) => {
+        if (idx === timer.slotIndex) {
+          return { ...item, enabled: false };
+        }
+        return item;
+      });
+      publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, updatedList, { retain: true });
+      setMqttSchedules((prev) => ({ ...prev, [timer.plugNum]: updatedList }));
     } else {
       await remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`));
 
@@ -387,7 +411,36 @@ export default function Timers() {
     toast.success(lang === 'bn' ? 'টাইমারটি মুছে ফেলা হয়েছে।' : 'Timer removed.');
   };
 
-  // Build combined timer list (MQTT delay timers + RTDB schedule entries)
+  // Build combined timer list (MQTT delay timers + RTDB schedule entries + device MQTT schedules)
+  const deviceSchedules = [];
+  Object.entries(mqttSchedules).forEach(([plugNumStr, list]) => {
+    const plugNum = parseInt(plugNumStr, 10);
+    if (!Array.isArray(list)) return;
+    list.forEach((item, index) => {
+      if (item.enabled) {
+        // Avoid duplicate if same schedule exists in RTDB
+        const exists = activeTimers.some(
+          (t) => t.plugNum === plugNum && t.time === item.time && t.action === item.action
+        );
+        if (!exists) {
+          deviceSchedules.push({
+            id: `device-sched-${plugNum}-${index}`,
+            type: 'schedule',
+            plugNum,
+            plugLabel: plugLabels[plugNum] || (lang === 'bn' ? `প্লাগ ${plugNum}` : `Plug ${plugNum}`),
+            action: item.action,
+            time: item.time,
+            repeat: item.repeat || 'daily',
+            days: item.repeat === 'once' ? 'once' : 'all',
+            enabled: true,
+            isFromDevice: true,
+            slotIndex: index,
+          });
+        }
+      }
+    });
+  });
+
   const allTimers = [
     ...Object.entries(timerStates)
       .filter(([, s]) => s?.active)
@@ -400,6 +453,7 @@ export default function Timers() {
         remainingSeconds: s.remainingSeconds,
       })),
     ...activeTimers,
+    ...deviceSchedules,
   ];
 
   const toggleDay = (key) => {

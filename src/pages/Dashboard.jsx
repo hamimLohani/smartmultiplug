@@ -20,6 +20,7 @@ export default function Dashboard() {
   // Plug states: null = unknown, true = on, false = off
   const [plugStates, setPlugStates] = useState({ 1: null, 2: null, 3: null, 4: null });
   const [timerMsgs, setTimerMsgs]   = useState({});   // plug num -> timer display string
+  const [scheduleMsgs, setScheduleMsgs] = useState({}); // plug num -> schedule display string
   const [optimistic, setOptimistic]   = useState({});   // plug num -> optimistic value
   const [pending, setPending]         = useState({});    // plug num -> true while waiting for confirm
   const [failed, setFailed]           = useState({});    // plug num -> true if device didn't respond
@@ -45,9 +46,10 @@ export default function Dashboard() {
       }
     }
 
-    // If message arrived after active sync request was sent, ESP is confirmed online
-    if (syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
-      setOnline(true);
+    if (msg === 'online' || msg === '1' || msg === 'true') {
+      if (syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
+        setOnline(true);
+      }
     }
   }, []);
 
@@ -64,7 +66,7 @@ export default function Dashboard() {
     },
   );
 
-  // Subscribe to plug state and timer topics for all 4 plugs
+  // Subscribe to plug state, timer, and schedule topics for all 4 plugs
   for (let n = 1; n <= 4; n++) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useMqttSubscribe(
@@ -106,6 +108,31 @@ export default function Dashboard() {
             setTimerMsgs((prev) => ({ ...prev, [n]: str }));
           } else {
             setTimerMsgs((prev) => { const c = { ...prev }; delete c[n]; return c; });
+          }
+        } catch { /* ignore */ }
+      },
+    );
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMqttSubscribe(
+      baseTopic ? `${baseTopic}/plug/${n}/schedule` : null,
+      (msg, topic) => {
+        handleIncomingMessage(msg, topic);
+        try {
+          const data = JSON.parse(msg);
+          if (Array.isArray(data)) {
+            const activeItem = data.find((item) => item.enabled);
+            if (activeItem) {
+              const actionText = activeItem.action === 'ON'
+                ? (lang === 'bn' ? 'চালু' : 'ON')
+                : (lang === 'bn' ? 'বন্ধ' : 'OFF');
+              const str = lang === 'bn'
+                ? `শিডিউল: ${activeItem.time} এ ${actionText}`
+                : `Sched: ${actionText} at ${activeItem.time}`;
+              setScheduleMsgs((prev) => ({ ...prev, [n]: str }));
+            } else {
+              setScheduleMsgs((prev) => { const c = { ...prev }; delete c[n]; return c; });
+            }
           }
         } catch { /* ignore */ }
       },
@@ -363,7 +390,7 @@ export default function Dashboard() {
               isPending={!!pending[n]}
               hasFailed={!!failed[n]}
               disabled={!mqttOk}
-              timerMsg={timerMsgs[n]}
+              timerMsg={timerMsgs[n] || scheduleMsgs[n]}
               onToggle={(newState) => handleToggle(n, newState)}
               onRename={(label) => updatePlugLabel(n, label)}
             />
