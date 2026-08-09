@@ -188,10 +188,50 @@ export default function Timers() {
   // Active timers from RTDB + MQTT
   const [activeTimers, setActiveTimers] = useState([]);
   const [timerStates, setTimerStates] = useState({}); // plug -> MQTT timer state
+  const [online, setOnline] = useState(null);
+
+  const lastResponseTimeRef = useRef(null);
+  const syncStartTimeRef = useRef(0);
 
   const baseTopic = user && deviceId
     ? `users/${user.uid}/devices/${deviceId}`
     : null;
+
+  // Subscribe to device status topic in Timers.jsx
+  useMqttSubscribe(
+    baseTopic ? `${baseTopic}/status` : null,
+    (msg) => {
+      const now = Date.now();
+      lastResponseTimeRef.current = now;
+      if (msg === 'offline') {
+        setOnline(false);
+      } else if (msg === 'online' && syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
+        setOnline(true);
+      }
+    },
+  );
+
+  // Active sync ping in Timers.jsx
+  useEffect(() => {
+    if (!baseTopic || !mqttOk) return;
+
+    const initialTimer = setTimeout(() => {
+      const syncTime = Date.now();
+      syncStartTimeRef.current = syncTime;
+      publish(`${baseTopic}/sync`, 'sync', { retain: false, qos: 1 });
+
+      setTimeout(() => {
+        const responded = lastResponseTimeRef.current && lastResponseTimeRef.current >= syncTime;
+        if (!responded) {
+          setOnline(false);
+        } else {
+          setOnline(true);
+        }
+      }, 3500);
+    }, 500);
+
+    return () => clearTimeout(initialTimer);
+  }, [baseTopic, mqttOk, publish]);
 
   // Subscribe to timer/state topics for all plugs (live countdown from device)
   for (let n = 1; n <= 4; n++) {
@@ -199,6 +239,11 @@ export default function Timers() {
     useMqttSubscribe(
       baseTopic ? `${baseTopic}/plug/${n}/timer/state` : null,
       (msg) => {
+        const now = Date.now();
+        lastResponseTimeRef.current = now;
+        if (syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
+          setOnline(true);
+        }
         try {
           const data = JSON.parse(msg);
           setTimerStates((prev) => ({ ...prev, [n]: data }));
@@ -256,11 +301,21 @@ export default function Timers() {
         timestamp: Date.now(),
       };
       publish(`${baseTopic}/plug/${selectedPlug}/timer/set`, payload);
-      toast.success(
-        lang === 'bn'
-          ? `টাইমার সেট করা হয়েছে — ${mins} মিনিট পর ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
-          : `Timer set — ${currentPlugLabel} will turn ${action} in ${mins} min`
-      );
+
+      if (online === false) {
+        toast(
+          lang === 'bn'
+            ? `টাইমার সংরক্ষিত — ডিভাইস অফলাইনে রয়েছে, ওয়াইফাই সংযোগ পেলে ${currentPlugLabel} ${mins} মিনিট পর ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+            : `Timer saved — Device offline. Will turn ${action} in ${mins} min when plug reconnects to WiFi`,
+          { icon: '⚠️' }
+        );
+      } else {
+        toast.success(
+          lang === 'bn'
+            ? `টাইমার সেট করা হয়েছে — ${mins} মিনিট পর ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+            : `Timer set — ${currentPlugLabel} will turn ${action} in ${mins} min`
+        );
+      }
 
     } else {
       // Schedule mode
@@ -300,11 +355,20 @@ export default function Timers() {
         { retain: true },
       );
 
-      toast.success(
-        lang === 'bn'
-          ? `সময়সূচী সংরক্ষিত হয়েছে — ${schedTime} মিনিটে ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
-          : `Schedule saved — ${currentPlugLabel} will turn ${action} at ${schedTime}`
-      );
+      if (online === false) {
+        toast(
+          lang === 'bn'
+            ? `সময়সূচী সংরক্ষিত — ডিভাইস অফলাইনে রয়েছে, অনলাইন হলে ${schedTime} সময়ে ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+            : `Schedule saved — Device offline. Will turn ${action} at ${schedTime} when plug reconnects to WiFi`,
+          { icon: '⚠️' }
+        );
+      } else {
+        toast.success(
+          lang === 'bn'
+            ? `সময়সূচী সংরক্ষিত হয়েছে — ${schedTime} মিনিটে ${currentPlugLabel} ${action === 'ON' ? 'চালু' : 'বন্ধ'} হবে`
+            : `Schedule saved — ${currentPlugLabel} will turn ${action} at ${schedTime}`
+        );
+      }
     }
   };
 
@@ -392,6 +456,36 @@ export default function Timers() {
         <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', marginBottom: 24 }}>
           {t('timers_subtitle')}
         </p>
+
+        {/* Device Offline Warning Banner */}
+        {mqttOk && online === false && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            marginBottom: 20,
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: '#f87171',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)',
+          }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+            <div>
+              <strong style={{ display: 'block', fontSize: 14, marginBottom: 2, color: '#f87171', fontWeight: 700 }}>
+                {lang === 'bn' ? 'ডিভাইসটি অফলাইনে আছে' : 'Device is Offline'}
+              </strong>
+              <span>
+                {lang === 'bn' 
+                  ? 'স্মার্ট মাল্টি-প্লাগটি অফলাইনে রয়েছে। ডিভাইসটি ওয়াইফাইতে পুনরায় অনলাইনে যুক্ত হলে আপনার সেট করা টাইমার ও সময়সূচী স্বয়ংক্রিয়ভাবে সিঙ্ক হবে।' 
+                  : 'Your Smart Multi-Plug is offline. Timers and schedules will automatically sync to the device once it reconnects to WiFi.'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Panel card */}
         <div className="card" style={{ marginBottom: 24 }}>
@@ -543,11 +637,57 @@ export default function Timers() {
             </div>
           )}
 
+          {/* Live Timing Summary Message Card */}
+          <div style={{
+            marginTop: 20,
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--clr-surface-2)',
+            border: '1px solid var(--clr-border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            fontSize: 13,
+            lineHeight: 1.45,
+          }}>
+            <span style={{ fontSize: 22 }}>
+              {mode === 'delay' ? '⏱️' : '📅'}
+            </span>
+            <div>
+              <span style={{
+                fontWeight: 700,
+                color: 'var(--clr-accent)',
+                display: 'block',
+                fontSize: 11,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                marginBottom: 2,
+              }}>
+                {lang === 'bn' ? 'টাইমিং সেট করার পূর্বরূপ (প্রিভিউ)' : 'Timer Setting Preview'}
+              </span>
+              <span style={{ color: 'var(--clr-text)' }}>
+                {mode === 'delay' ? (
+                  getDelayMinutes() ? (
+                    lang === 'bn' 
+                      ? `সেট করা হচ্ছে: ${plugLabels[selectedPlug] || `প্লাগ ${selectedPlug}`} — ${getDelayMinutes()} মিনিট পর ${action === 'ON' ? 'চালু (ON)' : 'বন্ধ (OFF)'} হবে`
+                      : `Setting: ${plugLabels[selectedPlug] || `Plug ${selectedPlug}`} to turn ${action} in ${getDelayMinutes()} min`
+                  ) : (
+                    lang === 'bn' ? 'টাইমারের সময় (মিনিট) নির্বাচন করুন…' : 'Select or enter a delay duration above…'
+                  )
+                ) : (
+                  lang === 'bn'
+                    ? `সেট করা হচ্ছে: ${plugLabels[selectedPlug] || `প্লাগ ${selectedPlug}`} — ${schedTime} সময়ে ${action === 'ON' ? 'চালু (ON)' : 'বন্ধ (OFF)'} হবে (${repeat === 'daily' ? 'প্রতিদিন' : repeat === 'once' ? 'একবার' : 'নির্দিষ্ট দিনগুলোতে'})`
+                    : `Setting: ${plugLabels[selectedPlug] || `Plug ${selectedPlug}`} to turn ${action} at ${schedTime} (${repeat === 'daily' ? 'Every day' : repeat === 'once' ? 'Once' : 'Custom days'})`
+                )}
+              </span>
+            </div>
+          </div>
+
           {/* Add button */}
           <button
             id="timer-add-btn"
             className="btn btn-primary btn-full"
-            style={{ marginTop: 24 }}
+            style={{ marginTop: 20 }}
             onClick={handleAddTimer}
             disabled={!baseTopic || (mode === 'schedule' && !mqttOk)}
           >

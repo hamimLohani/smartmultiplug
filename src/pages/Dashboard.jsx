@@ -19,34 +19,59 @@ export default function Dashboard() {
 
   // Plug states: null = unknown, true = on, false = off
   const [plugStates, setPlugStates] = useState({ 1: null, 2: null, 3: null, 4: null });
+  const [timerMsgs, setTimerMsgs]   = useState({});   // plug num -> timer display string
   const [optimistic, setOptimistic]   = useState({});   // plug num -> optimistic value
   const [pending, setPending]         = useState({});    // plug num -> true while waiting for confirm
   const [failed, setFailed]           = useState({});    // plug num -> true if device didn't respond
   const [online, setOnline]           = useState(null);  // null=unknown, true, false
 
   const confirmTimers = useRef({});
-  const lastSeenRef = useRef(Date.now());
+  const lastResponseTimeRef = useRef(null);
+  const syncStartTimeRef = useRef(0);
 
   const baseTopic = user && deviceId
     ? `users/${user.uid}/devices/${deviceId}`
     : null;
 
+  // Helper to record received MQTT messages from ESP
+  const handleIncomingMessage = useCallback((msg, topic) => {
+    const now = Date.now();
+    lastResponseTimeRef.current = now;
+
+    if (msg === 'offline' || msg === '0' || msg === 'false') {
+      if (topic?.endsWith('/status')) {
+        setOnline(false);
+        return;
+      }
+    }
+
+    // If message arrived after active sync request was sent, ESP is confirmed online
+    if (syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
+      setOnline(true);
+    }
+  }, []);
+
   // Subscribe to device status topic
   useMqttSubscribe(
     baseTopic ? `${baseTopic}/status` : null,
-    (msg) => {
-      lastSeenRef.current = Date.now();
-      setOnline(msg === 'online');
+    (msg, topic) => {
+      handleIncomingMessage(msg, topic);
+      if (msg === 'offline') {
+        setOnline(false);
+      } else if (msg === 'online' && syncStartTimeRef.current > 0 && Date.now() >= syncStartTimeRef.current) {
+        setOnline(true);
+      }
     },
   );
 
-  // Subscribe to all 4 plug state topics
+  // Subscribe to plug state and timer topics for all 4 plugs
   for (let n = 1; n <= 4; n++) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     useMqttSubscribe(
       baseTopic ? `${baseTopic}/plug/${n}/state` : null,
-      (msg) => {
-        lastSeenRef.current = Date.now();
+      (msg, topic) => {
+        handleIncomingMessage(msg, topic);
+
         const isOn = msg === '1' || msg === 'ON' || msg === 'true';
         setPlugStates((prev) => ({ ...prev, [n]: isOn }));
 
@@ -58,6 +83,31 @@ export default function Dashboard() {
           clearTimeout(confirmTimers.current[n]);
           delete confirmTimers.current[n];
         }
+      },
+    );
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useMqttSubscribe(
+      baseTopic ? `${baseTopic}/plug/${n}/timer/state` : null,
+      (msg, topic) => {
+        handleIncomingMessage(msg, topic);
+        try {
+          const data = JSON.parse(msg);
+          if (data.active && data.remainingSeconds > 0) {
+            const m = Math.floor(data.remainingSeconds / 60);
+            const s = data.remainingSeconds % 60;
+            const timeStr = `${m}:${String(s).padStart(2, '0')}`;
+            const actionText = data.action === 'ON' 
+              ? (lang === 'bn' ? 'চালু' : 'ON') 
+              : (lang === 'bn' ? 'বন্ধ' : 'OFF');
+            const str = lang === 'bn'
+              ? `${timeStr} পর ${actionText} হবে`
+              : `${actionText} in ${timeStr}`;
+            setTimerMsgs((prev) => ({ ...prev, [n]: str }));
+          } else {
+            setTimerMsgs((prev) => { const c = { ...prev }; delete c[n]; return c; });
+          }
+        } catch { /* ignore */ }
       },
     );
   }
@@ -87,6 +137,28 @@ export default function Dashboard() {
     }, CONFIRM_TIMEOUT_MS);
   }, [baseTopic, mqttOk, publish]);
 
+  // Active sync ping logic
+  const performSyncCheck = useCallback(() => {
+    if (!baseTopic || !mqttOk) return;
+
+    console.log('[Dashboard] Initiating active sync check with ESP...');
+    const syncTime = Date.now();
+    syncStartTimeRef.current = syncTime;
+
+    publish(`${baseTopic}/sync`, 'sync', { retain: false, qos: 1 });
+
+    setTimeout(() => {
+      const responded = lastResponseTimeRef.current && lastResponseTimeRef.current >= syncTime;
+      if (!responded) {
+        console.warn('[Dashboard] ESP did not respond to sync check. Setting offline.');
+        setOnline(false);
+      } else {
+        console.log('[Dashboard] ESP responded to sync check. Confirmed online.');
+        setOnline(true);
+      }
+    }, 3500);
+  }, [baseTopic, mqttOk, publish]);
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -94,37 +166,30 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Stale online check on initial connection
+  // Initial sync check on load (after 500ms to allow broker retained dump to settle)
   useEffect(() => {
-    if (mqttOk && online === true) {
-      const allNull = Object.values(plugStates).every((v) => v === null);
-      if (!allNull) return;
+    if (!baseTopic || !mqttOk) return;
 
-      const timer = setTimeout(() => {
-        const checkNull = Object.values(plugStates).every((v) => v === null);
-        if (checkNull) {
-          console.warn('[Dashboard] ESP did not respond to sync within 4s. Marking offline.');
-          setOnline(false);
-        }
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [mqttOk, online, plugStates]);
+    const initialTimer = setTimeout(() => {
+      performSyncCheck();
+    }, 500);
 
-  // Heartbeat check: If we don't hear from the ESP for 45 seconds, assume it is offline.
+    return () => clearTimeout(initialTimer);
+  }, [baseTopic, mqttOk, performSyncCheck]);
+
+  // Periodic heartbeat check every 15 seconds
   useEffect(() => {
-    if (!mqttOk || online !== true) return;
+    if (!baseTopic || !mqttOk || online !== true) return;
 
     const interval = setInterval(() => {
-      const secondsSinceLastSeen = (Date.now() - lastSeenRef.current) / 1000;
-      if (secondsSinceLastSeen > 45) {
-        console.warn(`[Dashboard] No heartbeat from ESP for ${secondsSinceLastSeen}s. Marking offline.`);
-        setOnline(false);
+      const secondsSinceLastMsg = lastResponseTimeRef.current ? (Date.now() - lastResponseTimeRef.current) / 1000 : 999;
+      if (secondsSinceLastMsg > 15) {
+        performSyncCheck();
       }
-    }, 5000); // Check every 5 seconds
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, [mqttOk, online]);
+  }, [baseTopic, mqttOk, online, performSyncCheck]);
 
   if (loading) return <SkeletonLoader />;
 
@@ -189,7 +254,7 @@ export default function Dashboard() {
           <OnlineIndicator online={online} />
         </div>
 
-        {/* MQTT offline banner */}
+        {/* MQTT connecting banner */}
         {!mqttOk && (
           <div style={{
             background: 'var(--clr-amber-dim)',
@@ -209,6 +274,36 @@ export default function Dashboard() {
                 ? 'ডিভাইসের সাথে সংযোগ স্থাপন করা হচ্ছে… নিয়ন্ত্রণ ফিচারসমূহ কিছুক্ষণের মধ্যেই উপলব্ধ হবে।' 
                 : 'Connecting to your device… Controls will be available shortly.'}
             </span>
+          </div>
+        )}
+
+        {/* Device Offline Warning Banner */}
+        {mqttOk && online === false && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            marginBottom: 20,
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: '#f87171',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)',
+          }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+            <div>
+              <strong style={{ display: 'block', fontSize: 14, marginBottom: 2, color: '#f87171', fontWeight: 700 }}>
+                {lang === 'bn' ? 'ডিভাইসটি অফলাইনে আছে' : 'Device is Offline'}
+              </strong>
+              <span>
+                {lang === 'bn' 
+                  ? 'স্মার্ট মাল্টি-প্লাগটি পাওয়ার সকেটে প্লাগ করা আছে কিনা এবং ওয়াইফাই সংযোগ সচল আছে কিনা তা নিশ্চিত করুন। ডিভাইসটি পাওয়ার অন বা অনলাইনে আসলে নিয়ন্ত্রণ বোতামসমূহ কাজ করবে।' 
+                  : 'Your Smart Multi-Plug is powered off or disconnected from WiFi. Ensure it is plugged into a wall socket and connected to WiFi for controls to respond.'}
+              </span>
+            </div>
           </div>
         )}
 
@@ -268,6 +363,7 @@ export default function Dashboard() {
               isPending={!!pending[n]}
               hasFailed={!!failed[n]}
               disabled={!mqttOk}
+              timerMsg={timerMsgs[n]}
               onToggle={(newState) => handleToggle(n, newState)}
               onRename={(label) => updatePlugLabel(n, label)}
             />

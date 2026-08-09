@@ -56,10 +56,10 @@ export function connectMqtt(onConnected, onDisconnected) {
     onConnected?.();
   });
 
-  client.on('message', (topic, payload) => {
+  client.on('message', (topic, payload, packet) => {
     const msg = payload.toString();
     const cbs = subscribers.get(topic);
-    if (cbs) cbs.forEach((cb) => cb(msg, topic));
+    if (cbs) cbs.forEach((cb) => cb(msg, topic, packet));
   });
 
   client.on('disconnect', () => { onDisconnected?.(); });

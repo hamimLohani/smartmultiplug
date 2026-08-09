@@ -101,7 +101,7 @@ export function DeviceProvider({ children }) {
       import('../mqtt').then(({ publish }) => {
         const topic = `users/${user.uid}/devices/${deviceId}/sync`;
         console.log(`[DeviceContext] Publishing sync message to topic: ${topic}`);
-        publish(topic, "sync", { retain: true, qos: 1 });
+        publish(topic, "sync", { retain: false, qos: 1 });
       });
     }
   }, [user, deviceId, mqttOk]);

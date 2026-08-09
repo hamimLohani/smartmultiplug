@@ -18,7 +18,7 @@ function CheckIcon() {
   );
 }
 
-export default function PlugCard({ plugNum, label, state, isPending, hasFailed, disabled, onToggle, onRename }) {
+export default function PlugCard({ plugNum, label, state, isPending, hasFailed, disabled, timerMsg, onToggle, onRename }) {
   const { lang, t } = useLanguage();
   const [editing, setEditing]   = useState(false);
   const [nameVal, setNameVal]   = useState(label);
@@ -97,6 +97,28 @@ export default function PlugCard({ plugNum, label, state, isPending, hasFailed, 
           {editing ? <CheckIcon /> : <EditIcon />}
         </button>
       </div>
+
+      {/* Active Timer / Schedule Message Badge */}
+      {timerMsg && (
+        <div style={{
+          marginTop: 6,
+          marginBottom: 6,
+          padding: '4px 8px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--clr-accent-dim)',
+          color: 'var(--clr-accent)',
+          fontSize: 11,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <span style={{ fontSize: 12 }}>⏱️</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {timerMsg}
+          </span>
+        </div>
+      )}
 
       {/* Bottom Row: State Label & Toggle Switch */}
       <div className="plug-card-bottom">
