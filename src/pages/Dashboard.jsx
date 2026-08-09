@@ -214,19 +214,7 @@ export default function Dashboard() {
             textAlign: 'center',
             marginTop: 40,
           }}>
-            <img
-              src="/logo.png"
-              alt="Smart Multi-Plug Logo"
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 18,
-                objectFit: 'cover',
-                margin: '0 auto 16px auto',
-                display: 'block',
-                boxShadow: 'var(--shadow-accent)',
-              }}
-            />
+            <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>🔌</span>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('dash_paired')}</h2>
             <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
               {t('dash_paired_desc')}

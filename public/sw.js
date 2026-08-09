@@ -1,11 +1,11 @@
-const CACHE_NAME = 'smart-multiplug-v3';
+const CACHE_NAME = 'smart-multiplug-v4';
 
 // Assets to cache immediately on installation
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/logo.png?v=2',
-  '/manifest.json?v=2'
+  '/plug-icon.svg',
+  '/manifest.json'
 ];
 
 // Service Worker installation
