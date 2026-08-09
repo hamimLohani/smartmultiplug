@@ -194,7 +194,19 @@ export default function PairDevice() {
       <div className="bg-mesh" />
 
       <div className="pair-card">
-        <div className="pair-icon">🔌</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <img
+            src="/logo.png"
+            alt="Smart Multi-Plug Logo"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 18,
+              objectFit: 'cover',
+              boxShadow: 'var(--shadow-accent)',
+            }}
+          />
+        </div>
 
         <p style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}>
           {t('pair_title')}

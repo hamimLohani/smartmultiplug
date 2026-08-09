@@ -95,7 +95,17 @@ export default function SignUp() {
       <header className="auth-header">
         <div className="auth-header-content">
           <div className="auth-brand">
-            <span className="auth-brand-logo">🔌</span>
+            <img
+              src="/logo.png"
+              alt="Smart Multi-Plug Logo"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 'var(--radius-sm)',
+                objectFit: 'cover',
+                boxShadow: 'var(--shadow-accent)',
+              }}
+            />
             <span className="auth-brand-name">{t('login_title')}</span>
           </div>
           <div className="lang-switcher-wrap">
@@ -118,7 +128,18 @@ export default function SignUp() {
       <div className="auth-container" style={{ maxWidth: '460px' }}>
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">🔌</div>
+            <img
+              src="/logo.png"
+              alt="Smart Multi-Plug Logo"
+              style={{
+                width: 68,
+                height: 68,
+                borderRadius: 20,
+                objectFit: 'cover',
+                boxShadow: 'var(--shadow-accent)',
+                marginBottom: 8,
+              }}
+            />
             <div>
               <p className="auth-title">{lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Create Account'}</p>
               <p className="auth-subtitle">{t('signup_subtitle')}</p>

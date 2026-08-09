@@ -23,7 +23,18 @@ function SetupGuide() {
       <div className="bg-mesh" />
       <div className="auth-card" style={{ maxWidth: 500, animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both' }}>
         <div className="auth-logo" style={{ marginBottom: 24 }}>
-          <div className="auth-logo-icon">🔌</div>
+          <img
+            src="/logo.png"
+            alt="Smart Multi-Plug Logo"
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              objectFit: 'cover',
+              boxShadow: 'var(--shadow-accent)',
+              marginBottom: 8,
+            }}
+          />
           <div>
             <h1 className="auth-title" style={{ fontSize: 24 }}>Smart Multi-Plug</h1>
             <p className="auth-subtitle" style={{ fontSize: 14 }}>Web Dashboard Setup</p>

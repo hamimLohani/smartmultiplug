@@ -4,20 +4,26 @@
   "description": "Control your WiFi power strip from anywhere. Monitor, schedule, and automate your smart plug.",
   "icons": [
     {
-      "src": "/plug-icon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/plug-icon.svg",
-      "type": "image/svg+xml",
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/plug-icon.svg",
-      "type": "image/svg+xml",
+      "src": "/logo.png",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
     }
