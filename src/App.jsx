@@ -9,6 +9,8 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import TabBar from './components/TabBar';
 
+import PwaInstallRecommendation from './components/PwaInstallRecommendation';
+
 import Login      from './pages/Login';
 import SignUp     from './pages/SignUp';
 import PairDevice from './pages/PairDevice';
@@ -138,6 +140,7 @@ function AppShell() {
       </Routes>
 
       {showTabs && <TabBar />}
+      <PwaInstallRecommendation />
     </>
   );
 }

@@ -9,6 +9,8 @@ import { auth, db, functions } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
 import { ref, remove, update } from 'firebase/database';
 import toast from 'react-hot-toast';
+import { usePwaInstall } from '../hooks/usePwaInstall';
+import PwaInstallRecommendation from '../components/PwaInstallRecommendation';
 
 function ChevronRight() {
   return (
@@ -269,6 +271,8 @@ export default function Settings() {
   const [showUnpair, setShowUnpair]     = useState(false);
   const [showLogout, setShowLogout]     = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
+  const [showPwaModal, setShowPwaModal] = useState(false);
+  const { isStandalone } = usePwaInstall();
   const [unpairing, setUnpairing]       = useState(false);
 
   // Inline plug rename state
@@ -429,6 +433,37 @@ export default function Settings() {
               >
                 ☀️ {lang === 'bn' ? 'লাইট' : 'Light'}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* PWA App Installation Card */}
+        <p className="settings-section-title">{t('pwa_settings_card_title')}</p>
+        <div className="settings-group">
+          <div
+            id="settings-pwa-install"
+            className="settings-item"
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              if (isStandalone) {
+                toast.success(t('pwa_installed_badge'));
+              } else {
+                setShowPwaModal(true);
+              }
+            }}
+          >
+            <div className="settings-item-left">
+              <div className="settings-item-icon" style={{ background: 'linear-gradient(135deg, rgba(88, 166, 255, 0.2), rgba(37, 208, 165, 0.2))', fontSize: 18 }}>📲</div>
+              <div>
+                <p className="settings-item-label">{t('pwa_install_title')}</p>
+                <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', marginTop: 2 }}>{t('pwa_settings_card_desc')}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className={`badge ${isStandalone ? 'badge-green' : 'badge-amber'}`}>
+                {isStandalone ? t('pwa_installed_badge') : t('pwa_install_btn')}
+              </span>
+              <ChevronRight />
             </div>
           </div>
         </div>
@@ -621,6 +656,10 @@ export default function Settings() {
       />
 
       <ChangePasswordModal show={showChangePw} onClose={() => setShowChangePw(false)} lang={lang} t={t} />
+
+      {showPwaModal && (
+        <PwaInstallRecommendation forceShow={true} onCloseModal={() => setShowPwaModal(false)} />
+      )}
     </div>
   );
 }

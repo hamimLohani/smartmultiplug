@@ -125,6 +125,28 @@ const translations = {
     dash_paired: 'No device paired',
     dash_paired_desc: 'Pair a device to control outlets and view stats.',
     dash_btn_pair: 'Pair Device',
+
+    // PWA Installation Recommendation
+    pwa_install_title: 'Install Smart Multi-Plug App',
+    pwa_install_subtitle: 'Get instant home screen access, faster load times & fullscreen experience.',
+    pwa_install_btn: 'Install App',
+    pwa_install_later: 'Not Now',
+    pwa_badge: 'App Recommended',
+    pwa_feature_1_title: '1-Tap Fast Access',
+    pwa_feature_1_desc: 'Launch directly from your phone home screen or desktop.',
+    pwa_feature_2_title: 'Fullscreen & Offline Ready',
+    pwa_feature_2_desc: 'Smoother control and reliable operation even on weak network.',
+    pwa_ios_guide_title: 'How to install on iPhone / iPad (iOS):',
+    pwa_ios_step_1: '1. Tap the Share button ( 📤 ) in Safari toolbar',
+    pwa_ios_step_2: '2. Scroll down & select "Add to Home Screen" ( ➕ )',
+    pwa_ios_step_3: '3. Tap "Add" in the top right corner',
+    pwa_generic_guide_title: 'How to install from Browser:',
+    pwa_generic_step_1: '1. Open browser menu ( ⋮ or ⚙️ )',
+    pwa_generic_step_2: '2. Select "Install App" or "Add to Home Screen"',
+    pwa_got_it: 'Got It!',
+    pwa_installed_badge: 'PWA Installed',
+    pwa_settings_card_title: 'Mobile App & PWA',
+    pwa_settings_card_desc: 'Install the app to your Home Screen for instant 1-tap remote control without using browser address bar.',
   },
   bn: {
     // Navigation / TabBar
@@ -248,6 +270,28 @@ const translations = {
     dash_paired: 'কোনো প্লাগ কানেক্ট করা নেই',
     dash_paired_desc: 'সকেট অন/অফ এবং টাইমার সেট করতে প্রথমে আপনার মাল্টি-প্লাগটি কানেক্ট করুন।',
     dash_btn_pair: 'মাল্টি-প্লাগ কানেক্ট করুন',
+
+    // PWA Installation Recommendation
+    pwa_install_title: 'স্মার্ট মাল্টি-প্লাগ অ্যাপ ইনস্টল করুন',
+    pwa_install_subtitle: 'হোম স্ক্রিন থেকে ১-ক্লিকে সরাসরি অ্যাপের মতো ব্যবহার করুন ও দ্রত নিয়ন্ত্রণ করুন।',
+    pwa_install_btn: 'ইনস্টল করুন',
+    pwa_install_later: 'পরে করব',
+    pwa_badge: 'ইনস্টল করার সুপারিশ',
+    pwa_feature_1_title: '১-ক্লিকে দ্রুত ওপেন',
+    pwa_feature_1_desc: 'মোবাইলের হোম স্ক্রিন বা ডেসটপ থেকে ব্রাউজার ছাড়াই সরাসরি অ্যাপ খুলুন',
+    pwa_feature_2_title: 'ফুলস্ক্রিন ও ফাস্ট পারফর্মেন্স',
+    pwa_feature_2_desc: 'কোনো এড্রেস বার ছাড়া পুরো স্ক্রিন জুড়ে স্মুথ ও স্বাচ্ছন্দ্যে ব্যবহার করুন',
+    pwa_ios_guide_title: 'আইফোনে (iOS) কীভাবে ইনস্টল করবেন:',
+    pwa_ios_step_1: '১. সাফারির নিচে শেয়ার (Share 📤) বাটনে ট্যাপ করুন',
+    pwa_ios_step_2: '২. নিচে স্ক্রোল করে "Add to Home Screen" ( ➕ ) নির্বাচন করুন',
+    pwa_ios_step_3: '৩. উপরে ডানপাশে "Add" বাটনে ক্লিক করুন',
+    pwa_generic_guide_title: 'ব্রাউজারে কীভাবে ইনস্টল করবেন:',
+    pwa_generic_step_1: '১. আপনার ব্রাউজারের থ্রি-ডট ( ⋮ ) মেনুতে যান',
+    pwa_generic_step_2: '২. "Install App" বা "Add to Home Screen" অপশনে ক্লিক করুন',
+    pwa_got_it: 'বুঝতে পেরেছি',
+    pwa_installed_badge: 'অ্যাপ ইনস্টলড আছে',
+    pwa_settings_card_title: 'মোবাইল অ্যাপ ও PWA',
+    pwa_settings_card_desc: 'হোম স্ক্রিনে আইকন যোগ করে ব্রাউজার ছাড়াই অ্যাপের মতো সহজেই মাল্টি-প্লাগ নিয়ন্ত্রণ করুন।',
   }
 };
 
