@@ -1,28 +1,29 @@
 {
+  "id": "/?v=2",
   "short_name": "Multi-Plug",
   "name": "Smart Multi-Plug Dashboard",
   "description": "Control your WiFi power strip from anywhere. Monitor, schedule, and automate your smart plug.",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/logo.png?v=2",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/logo.png",
+      "src": "/logo.png?v=2",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/logo.png",
+      "src": "/logo.png?v=2",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/logo.png",
+      "src": "/logo.png?v=2",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
