@@ -43,127 +43,6 @@ function WifiNotice({ connected, t }) {
   );
 }
 
-/* ── Custom drum-roll time picker ── */
-function TimeSpinner({ value, onChange, lang }) {
-  const [hh, mm] = value.split(':').map(Number);
-  const [editing, setEditing] = useState(false);
-  const [tempH, setTempH] = useState(hh);
-  const [tempM, setTempM] = useState(mm);
-
-  // Long-press repeat
-  const intervalRef = useRef(null);
-  const startRepeat = useCallback((fn) => {
-    fn();
-    intervalRef.current = setInterval(fn, 120);
-  }, []);
-  const stopRepeat = useCallback(() => {
-    clearInterval(intervalRef.current);
-  }, []);
-
-  const open = () => {
-    setTempH(hh);
-    setTempM(mm);
-    setEditing(true);
-  };
-
-  const confirm = () => {
-    const formatted = `${String(tempH).padStart(2, '0')}:${String(tempM).padStart(2, '0')}`;
-    onChange(formatted);
-    setEditing(false);
-  };
-
-  const cancel = () => setEditing(false);
-
-  const incrH = () => setTempH(h => (h + 1) % 24);
-  const decrH = () => setTempH(h => (h + 23) % 24);
-  const incrM = () => setTempM(m => (m + 1) % 60);
-  const decrM = () => setTempM(m => (m + 59) % 60);
-
-  const display = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-
-  return (
-    <div>
-      {/* Collapsed display */}
-      {!editing && (
-        <button type="button" className="time-display-btn" onClick={open}>
-          <span className="time-display-value">{display}</span>
-          <span className="time-display-edit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-            {lang === 'bn' ? 'পরিবর্তন' : 'Edit'}
-          </span>
-        </button>
-      )}
-
-      {/* Expanded spinner */}
-      {editing && (
-        <div className="time-spinner-wrap">
-          {/* Hours column */}
-          <div className="time-spinner-col">
-            <button
-              type="button"
-              className="time-spin-btn"
-              onMouseDown={() => startRepeat(incrH)}
-              onMouseUp={stopRepeat}
-              onMouseLeave={stopRepeat}
-              onTouchStart={() => startRepeat(incrH)}
-              onTouchEnd={stopRepeat}
-              aria-label="Increase hours"
-            >▲</button>
-            <div className="time-spin-value">{String(tempH).padStart(2, '0')}</div>
-            <button
-              type="button"
-              className="time-spin-btn"
-              onMouseDown={() => startRepeat(decrH)}
-              onMouseUp={stopRepeat}
-              onMouseLeave={stopRepeat}
-              onTouchStart={() => startRepeat(decrH)}
-              onTouchEnd={stopRepeat}
-              aria-label="Decrease hours"
-            >▼</button>
-          </div>
-
-          <span className="time-spin-sep">:</span>
-
-          {/* Minutes column */}
-          <div className="time-spinner-col">
-            <button
-              type="button"
-              className="time-spin-btn"
-              onMouseDown={() => startRepeat(incrM)}
-              onMouseUp={stopRepeat}
-              onMouseLeave={stopRepeat}
-              onTouchStart={() => startRepeat(incrM)}
-              onTouchEnd={stopRepeat}
-              aria-label="Increase minutes"
-            >▲</button>
-            <div className="time-spin-value">{String(tempM).padStart(2, '0')}</div>
-            <button
-              type="button"
-              className="time-spin-btn"
-              onMouseDown={() => startRepeat(decrM)}
-              onMouseUp={stopRepeat}
-              onMouseLeave={stopRepeat}
-              onTouchStart={() => startRepeat(decrM)}
-              onTouchEnd={stopRepeat}
-              aria-label="Decrease minutes"
-            >▼</button>
-          </div>
-
-          {/* Action buttons */}
-          <div className="time-spin-actions">
-            <button type="button" className="time-spin-action-btn cancel" onClick={cancel}>✕</button>
-            <button type="button" className="time-spin-action-btn ok" onClick={confirm}>
-              {lang === 'bn' ? 'ঠিক আছে' : 'OK'}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function Timers() {
   const navigate = useNavigate();
@@ -184,6 +63,32 @@ export default function Timers() {
   const [schedTime, setSchedTime] = useState('08:00');
   const [repeat, setRepeat] = useState('once');     // 'once' | 'daily' | 'custom'
   const [customDays, setCustomDays] = useState([]);
+
+  // Live system clock logic
+  const [liveTime, setLiveTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatLiveTime = () => {
+    return liveTime.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const setSchedTimeToNow = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    setSchedTime(`${hh}:${mm}`);
+  };
 
   // Active timers from RTDB + MQTT
   const [activeTimers, setActiveTimers] = useState([]);
@@ -642,11 +547,30 @@ export default function Timers() {
           ) : (
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }} className={!mqttOk ? 'sched-disabled-layer' : ''}>
               <div>
-                <p className="timer-section-label">{t('timers_time')}</p>
-                <TimeSpinner
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                  <p className="timer-section-label" style={{ margin: 0 }}>{t('timers_time')}</p>
+                  
+                  <div className="live-clock-badge">
+                    <span className="live-clock-dot"></span>
+                    <span className="live-clock-text">{formatLiveTime()}</span>
+                    <button
+                      type="button"
+                      className="live-clock-use-btn"
+                      onClick={setSchedTimeToNow}
+                      title={lang === 'bn' ? 'বর্তমান সময় সেট করুন' : 'Use current system time'}
+                      disabled={!mqttOk}
+                    >
+                      {lang === 'bn' ? 'এখনকার সময় নিন' : 'Set to Now'}
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="time"
+                  className="time-picker-input"
                   value={schedTime}
-                  onChange={setSchedTime}
-                  lang={lang}
+                  onChange={(e) => setSchedTime(e.target.value)}
+                  disabled={!mqttOk}
                 />
               </div>
 
