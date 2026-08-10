@@ -60,11 +60,14 @@ export function DeviceProvider({ children }) {
   useEffect(() => {
     if (!user || !deviceId || !mqttOk) return;
 
-    let unsubscribe = null;
+    let unsubUserEvent = null;
+    let unsubDeviceEvent = null;
 
     import('../mqtt').then(({ subscribe, publish }) => {
-      const topic = `users/${user.uid}/devices/${deviceId}/unpair`;
-      unsubscribe = subscribe(topic, async (msg) => {
+      const userTopic = `users/${user.uid}/devices/${deviceId}/unpair_event`;
+      const deviceTopic = `devices/${deviceId}/unpair_event`;
+
+      const handleUnpairEvent = async (msg) => {
         if (msg === 'unpair') {
           console.log('[DeviceContext] Received unpair command from device via MQTT');
           try {
@@ -79,7 +82,8 @@ export function DeviceProvider({ children }) {
             await remove(userDeviceRef);
 
             // 2. Clear retained unpair message
-            publish(topic, '', { retain: true });
+            publish(userTopic, '', { retain: true });
+            publish(deviceTopic, '', { retain: true });
 
             // 3. Inform user
             toast.success('Device was unpaired from the physical menu.');
@@ -88,11 +92,15 @@ export function DeviceProvider({ children }) {
             console.error('[DeviceContext] Error processing unpair from MQTT:', err);
           }
         }
-      });
+      };
+
+      unsubUserEvent = subscribe(userTopic, handleUnpairEvent);
+      unsubDeviceEvent = subscribe(deviceTopic, handleUnpairEvent);
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubUserEvent) unsubUserEvent();
+      if (unsubDeviceEvent) unsubDeviceEvent();
     };
   }, [user, deviceId, mqttOk]);
 
