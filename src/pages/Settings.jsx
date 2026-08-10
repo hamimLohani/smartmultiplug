@@ -262,8 +262,8 @@ function HelpInstructions({ lang, t }) {
 }
 
 export default function Settings() {
-  const { user, logout }           = useAuth();
-  const { device, deviceId, plugLabels, updatePlugLabel, clearDevice } = useDevice();
+  const { user, logout, mqttOk }   = useAuth();
+  const { device, deviceId, plugLabels, updatePlugLabel, clearDevice, numPlugs } = useDevice();
   const { lang, setLang, t }       = useLanguage();
   const { theme, setTheme }        = useTheme();
   const navigate                   = useNavigate();
@@ -287,22 +287,27 @@ export default function Settings() {
   };
 
   const handleUnpair = async () => {
+    if (!mqttOk) {
+      toast.error(
+        lang === 'bn'
+          ? 'MQTT সংযোগ নেই। ডিভাইস রিমুভ করার আগে অ্যাপ সংযোগ ফিরে আসা পর্যন্ত অপেক্ষা করুন।'
+          : 'MQTT is not connected. Wait for app connection before removing the device.'
+      );
+      return;
+    }
+
     setUnpairing(true);
     try {
       // Notify the device over MQTT first
-      try {
-        const { publish } = await import('../mqtt');
-        publish(`users/${user.uid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
-      } catch (mqttErr) {
-        console.error('Failed to publish unpair message to MQTT:', mqttErr);
-      }
+      const { publishAsync } = await import('../mqtt');
+      await publishAsync(`users/${user.uid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
 
       if (functions) {
         try {
           const unclaimDevice = httpsCallable(functions, 'unclaimDevice');
           await unclaimDevice({ deviceId });
         } catch (err) {
-          if (['functions/not-found', 'functions/internal', 'functions/unavailable'].includes(err.code)) {
+          if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
             await unpairDeviceDirectly(deviceId, user.uid);
           } else {
             throw err;
@@ -481,7 +486,7 @@ export default function Settings() {
           <>
             <p className="settings-section-title">{t('settings_rename_header')}</p>
             <div className="settings-group">
-              {[1,2,3,4].map((n) => (
+              {Array.from({ length: numPlugs }, (_, i) => i + 1).map((n) => (
                 <div key={n} className="settings-item" style={{ cursor: 'default' }}>
                   {renamingPlug === n ? (
                     <div className="settings-rename-row">

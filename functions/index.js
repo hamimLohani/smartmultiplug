@@ -14,6 +14,12 @@ const { getDatabase }        = require('firebase-admin/database');
 
 initializeApp();
 
+function getNumPlugsFromDeviceId(deviceId) {
+  if (deviceId.startsWith('SP2-')) return 2;
+  if (deviceId.startsWith('SP3-')) return 3;
+  return 4;
+}
+
 // ── claimDevice ─────────────────────────────────────────────────────────────
 exports.claimDevice = onCall(async (request) => {
   // 1. Must be authenticated
@@ -46,18 +52,19 @@ exports.claimDevice = onCall(async (request) => {
 
   // 4. Atomic write: mark device as claimed + create user device record
   const now = Date.now();
+  const numPlugs = getNumPlugsFromDeviceId(deviceId);
+  const updates = {
+    [`/devices/${deviceId}/claimed_by`]: uid,
+    [`/devices/${deviceId}/claimed_at`]: now,
+    [`/users/${uid}/devices/${deviceId}/name`]: 'Smart Multi-Plug',
+    [`/users/${uid}/devices/${deviceId}/paired_at`]: now,
+  };
 
-  await db.ref().update({
-    [`/devices/${deviceId}/claimed_by`]:          uid,
-    [`/devices/${deviceId}/claimed_at`]:          now,
+  for (let n = 1; n <= numPlugs; n++) {
+    updates[`/users/${uid}/devices/${deviceId}/plugs/${n}/label`] = `Plug ${n}`;
+  }
 
-    [`/users/${uid}/devices/${deviceId}/name`]:            'Smart Multi-Plug',
-    [`/users/${uid}/devices/${deviceId}/paired_at`]:       now,
-    [`/users/${uid}/devices/${deviceId}/plugs/1/label`]:   'Plug 1',
-    [`/users/${uid}/devices/${deviceId}/plugs/2/label`]:   'Plug 2',
-    [`/users/${uid}/devices/${deviceId}/plugs/3/label`]:   'Plug 3',
-    [`/users/${uid}/devices/${deviceId}/plugs/4/label`]:   'Plug 4',
-  });
+  await db.ref().update(updates);
 
   return { success: true, deviceId };
 });

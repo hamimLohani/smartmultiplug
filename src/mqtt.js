@@ -15,12 +15,17 @@ import mqtt from 'mqtt';
 
 let client = null;
 const subscribers = new Map(); // topic -> Set of callbacks
+const connectHandlers = new Set();
+const disconnectHandlers = new Set();
 
 function getClientId() {
   return `smartplug-web-${Math.random().toString(16).slice(2, 10)}`;
 }
 
 export function connectMqtt(onConnected, onDisconnected) {
+  if (onConnected) connectHandlers.add(onConnected);
+  if (onDisconnected) disconnectHandlers.add(onDisconnected);
+
   if (client) {
     if (client.connected) {
       onConnected?.();
@@ -53,7 +58,7 @@ export function connectMqtt(onConnected, onDisconnected) {
     subscribers.forEach((_, topic) => {
       client.subscribe(topic, { qos: 1 });
     });
-    onConnected?.();
+    connectHandlers.forEach((handler) => handler());
   });
 
   client.on('message', (topic, payload, packet) => {
@@ -62,8 +67,19 @@ export function connectMqtt(onConnected, onDisconnected) {
     if (cbs) cbs.forEach((cb) => cb(msg, topic, packet));
   });
 
-  client.on('disconnect', () => { onDisconnected?.(); });
-  client.on('error', (err)  => { console.error('[MQTT] Error', err); });
+  client.on('close', () => {
+    disconnectHandlers.forEach((handler) => handler());
+  });
+  client.on('offline', () => {
+    disconnectHandlers.forEach((handler) => handler());
+  });
+  client.on('disconnect', () => {
+    disconnectHandlers.forEach((handler) => handler());
+  });
+  client.on('error', (err)  => {
+    console.error('[MQTT] Error', err);
+    disconnectHandlers.forEach((handler) => handler());
+  });
 
   return client;
 }
@@ -94,10 +110,29 @@ export function subscribe(topic, callback) {
 export function publish(topic, payload, opts = {}) {
   if (!client || !client.connected) {
     console.warn('[MQTT] Not connected; cannot publish');
-    return;
+    return false;
   }
   const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
   client.publish(topic, message, { qos: 1, retain: false, ...opts });
+  return true;
+}
+
+export function publishAsync(topic, payload, opts = {}) {
+  return new Promise((resolve, reject) => {
+    if (!client || !client.connected) {
+      reject(new Error('MQTT is not connected'));
+      return;
+    }
+
+    const message = typeof payload === 'string' ? payload : JSON.stringify(payload);
+    client.publish(topic, message, { qos: 1, retain: false, ...opts }, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(true);
+      }
+    });
+  });
 }
 
 export function disconnectMqtt() {
@@ -105,6 +140,8 @@ export function disconnectMqtt() {
     client.end(true);
     client = null;
     subscribers.clear();
+    connectHandlers.clear();
+    disconnectHandlers.clear();
   }
 }
 

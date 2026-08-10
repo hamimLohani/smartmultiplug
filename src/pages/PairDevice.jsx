@@ -134,7 +134,7 @@ export default function PairDevice() {
           const claimDevice = httpsCallable(functions, 'claimDevice');
           await claimDevice({ deviceId: codeToPair });
         } catch (err) {
-          if (['functions/not-found', 'functions/internal', 'functions/unavailable'].includes(err.code)) {
+          if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
             await pairDeviceDirectly(codeToPair, user.uid);
           } else {
             throw err;
