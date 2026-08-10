@@ -108,6 +108,27 @@ export default function PairDevice() {
 
     setLoading(true);
     try {
+      // Resolve the correct prefix (SP-, SP2-, SP3-, SP4-) by querying the DB
+      let resolvedId = codeToPair;
+      if (codeToPair.startsWith('SP-')) {
+        const suffix = codeToPair.substring(3);
+        const prefixes = ['SP-', 'SP2-', 'SP3-', 'SP4-'];
+        for (const pref of prefixes) {
+          const testId = `${pref}${suffix}`;
+          try {
+            const deviceRef = ref(db, `devices/${testId}`);
+            const snap = await get(deviceRef);
+            if (snap.exists()) {
+              resolvedId = testId;
+              break;
+            }
+          } catch (e) {
+            // Ignore read/permission errors (e.g. if node exists but database rules restrict access)
+          }
+        }
+      }
+      codeToPair = resolvedId;
+
       if (functions) {
         try {
           const claimDevice = httpsCallable(functions, 'claimDevice');
