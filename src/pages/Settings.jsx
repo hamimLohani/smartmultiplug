@@ -289,6 +289,14 @@ export default function Settings() {
   const handleUnpair = async () => {
     setUnpairing(true);
     try {
+      // Notify the device over MQTT first
+      try {
+        const { publish } = await import('../mqtt');
+        publish(`users/${user.uid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
+      } catch (mqttErr) {
+        console.error('Failed to publish unpair message to MQTT:', mqttErr);
+      }
+
       if (functions) {
         try {
           const unclaimDevice = httpsCallable(functions, 'unclaimDevice');
