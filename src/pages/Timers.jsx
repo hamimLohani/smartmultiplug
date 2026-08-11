@@ -185,6 +185,45 @@ export default function Timers() {
     return () => off(schedRef, 'value', handle);
   }, [user, deviceId]);
 
+  // Clean up completed 'once' schedules from RTDB once they are executed/removed on the device
+  useEffect(() => {
+    console.log('[Sync Hook] Triggered. activeTimers:', activeTimers, 'mqttSchedules:', mqttSchedules);
+    if (!db || !user || !deviceId) return;
+
+    activeTimers.forEach(async (timer) => {
+      console.log('[Sync Hook] Checking timer:', timer);
+      if (
+        timer.type === 'schedule' &&
+        (timer.repeat === 'once' || timer.days === 'once') &&
+        (!timer.createdAt || Date.now() - timer.createdAt > 15000)
+      ) {
+        const deviceList = mqttSchedules[timer.plugNum];
+        console.log('[Sync Hook] deviceList for plug', timer.plugNum, 'is:', deviceList);
+        if (Array.isArray(deviceList)) {
+          // Check if this schedule is still present and enabled in the device's MQTT list
+          const existsOnDevice = deviceList.some(
+            (item) => {
+              console.log('[Sync Hook] Comparing RTDB timer', timer.time, timer.action, 'with MQTT item', item.time, item.action, item.enabled);
+              return item.time === timer.time &&
+                     item.action === timer.action &&
+                     item.enabled;
+            }
+          );
+
+          console.log('[Sync Hook] existsOnDevice:', existsOnDevice);
+          if (!existsOnDevice) {
+            console.log(`[Sync] Deleting finished 'once' schedule (${timer.time} for Plug ${timer.plugNum}) from RTDB.`);
+            try {
+              await remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`));
+            } catch (err) {
+              console.error('Failed to auto-delete finished schedule from RTDB:', err);
+            }
+          }
+        }
+      }
+    });
+  }, [db, user, deviceId, activeTimers, mqttSchedules]);
+
   const getDelayMinutes = () => {
     if (delayPreset) return delayPreset;
     const v = parseInt(customMin, 10);
