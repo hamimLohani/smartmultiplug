@@ -13,7 +13,7 @@ const CONFIRM_TIMEOUT_MS = 5000;
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { device, deviceId, plugLabels, updatePlugLabel, loading, numPlugs } = useDevice();
+  const { devices, device, deviceId, plugLabels, updatePlugLabel, selectDevice, loading, numPlugs } = useDevice();
   const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
@@ -276,9 +276,25 @@ export default function Dashboard() {
               {lang === 'bn' ? 'লাইভ কন্ট্রোল' : 'Live Control'}
             </span>
             <h1 className="page-title dash-title">{t('dash_title')}</h1>
-            <p className="page-subtitle dash-subtitle">
-              {device?.name || 'Smart Multi-Plug'}
-            </p>
+            {devices.length > 1 && deviceId ? (
+              <div className="device-select-container">
+                <select
+                  className="device-select-dropdown"
+                  value={deviceId || ''}
+                  onChange={(e) => selectDevice(e.target.value)}
+                >
+                  {devices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      🔌 {d.name || 'Smart Multi-Plug'} ({d.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="page-subtitle dash-subtitle">
+                {device?.name || 'Smart Multi-Plug'}
+              </p>
+            )}
           </div>
           <div className="dash-status-wrap">
             <OnlineIndicator online={online} />

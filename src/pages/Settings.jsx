@@ -265,7 +265,7 @@ function HelpInstructions({ lang, t }) {
 
 export default function Settings() {
   const { user, logout, mqttOk }   = useAuth();
-  const { device, deviceId, plugLabels, updatePlugLabel, clearDevice, numPlugs } = useDevice();
+  const { devices, device, deviceId, plugLabels, updatePlugLabel, updateDeviceName, selectDevice, clearDevice, numPlugs } = useDevice();
   const { lang, setLang, t }       = useLanguage();
   const { theme, setTheme }        = useTheme();
   const navigate                   = useNavigate();
@@ -340,6 +340,21 @@ export default function Settings() {
     setRenamingPlug(null);
   };
 
+  const [renamingDevice, setRenamingDevice] = useState(false);
+  const [deviceRenameValue, setDeviceRenameValue] = useState('');
+
+  const startDeviceRename = () => {
+    setRenamingDevice(true);
+    setDeviceRenameValue(device?.name || 'Smart Multi-Plug');
+  };
+  const commitDeviceRename = async () => {
+    const trimmed = deviceRenameValue.trim();
+    if (trimmed && trimmed !== device?.name) {
+      await updateDeviceName(trimmed);
+    }
+    setRenamingDevice(false);
+  };
+
   const handleUnpair = async () => {
     if (!mqttOk) {
       toast.error(
@@ -371,9 +386,14 @@ export default function Settings() {
         await unpairDeviceDirectly(deviceId, user.uid);
       }
 
+      const remainingCount = (devices || []).length - 1;
       toast.success(lang === 'bn' ? 'আপনার অ্যাকাউন্ট থেকে ডিভাইসটি মুছে ফেলা হয়েছে।' : 'Device removed from your account.');
-      clearDevice();
-      navigate('/pair');
+      if (remainingCount <= 0) {
+        clearDevice();
+        navigate('/pair');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       console.error('Failed to unpair device:', err);
       toast.error(lang === 'bn' ? 'ডিভাইসটি মুছতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।' : 'Failed to remove device. Please try again.');
@@ -404,9 +424,25 @@ export default function Settings() {
               {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
             </span>
             <h1 className="page-title dash-title">{t('settings_title')}</h1>
-            <p className="page-subtitle dash-subtitle">
-              {deviceId ? t('settings_subtitle') : t('dash_paired')}
-            </p>
+            {devices.length > 1 && deviceId ? (
+              <div className="device-select-container">
+                <select
+                  className="device-select-dropdown"
+                  value={deviceId || ''}
+                  onChange={(e) => selectDevice(e.target.value)}
+                >
+                  {devices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      🔌 {d.name || 'Smart Multi-Plug'} ({d.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="page-subtitle dash-subtitle">
+                {deviceId ? t('settings_subtitle') : t('dash_paired')}
+              </p>
+            )}
           </div>
           <div className="dash-status-wrap">
             <OnlineIndicator online={deviceId ? online : 'unpaired'} />
@@ -601,16 +637,56 @@ export default function Settings() {
         {deviceId ? (
           <div className="settings-group settings-group-modern">
             <div className="settings-item" style={{ cursor: 'default' }}>
-              <div className="settings-item-left">
-                <div className="settings-item-icon" style={{ background: 'var(--clr-green-dim)' }}>🔌</div>
-                <div>
-                  <p className="settings-item-label">Smart Multi-Plug</p>
-                  <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{deviceId}</p>
+              {renamingDevice ? (
+                <div className="settings-rename-row" style={{ width: '100%' }}>
+                  <input
+                    autoFocus
+                    className="form-input"
+                    value={deviceRenameValue}
+                    onChange={e => setDeviceRenameValue(e.target.value)}
+                    onKeyDown={e => { if(e.key==='Enter') commitDeviceRename(); if(e.key==='Escape') setRenamingDevice(false); }}
+                    maxLength={30}
+                    style={{ flex: 1, padding: '8px 12px', fontSize: 14 }}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={commitDeviceRename}>{t('save')}</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setRenamingDevice(false)}>{t('cancel')}</button>
                 </div>
+              ) : (
+                <>
+                  <div className="settings-item-left">
+                    <div className="settings-item-icon" style={{ background: 'var(--clr-green-dim)' }}>🔌</div>
+                    <div>
+                      <p className="settings-item-label">{device?.name || 'Smart Multi-Plug'}</p>
+                      <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{deviceId}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={startDeviceRename}
+                    >
+                      {lang === 'bn' ? 'নাম পরিবর্তন' : 'Rename'}
+                    </button>
+                    <span className="badge badge-green">
+                      {lang === 'bn' ? 'সংযুক্ত' : 'Paired'}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div
+              id="settings-pair-device"
+              className="settings-item"
+              onClick={() => navigate('/pair')}
+            >
+              <div className="settings-item-left">
+                <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)' }}>🔌</div>
+                <span className="settings-item-label" style={{ color: 'var(--clr-accent)' }}>
+                  {lang === 'bn' ? 'নতুন ডিভাইস যুক্ত করুন' : 'Pair New Device'}
+                </span>
               </div>
-              <span className="badge badge-green">
-                {lang === 'bn' ? 'সংযুক্ত' : 'Paired'}
-              </span>
+              <ChevronRight />
             </div>
 
             <div
@@ -699,7 +775,7 @@ export default function Settings() {
       <Modal
         show={showUnpair}
         title={t('settings_confirm_unpair_title')}
-        body={t('settings_confirm_unpair_body')}
+        body={t('settings_confirm_unpair_body').replace('{deviceId}', deviceId || '')}
         confirmLabel={unpairing ? (lang === 'bn' ? 'মুছে ফেলা হচ্ছে…' : 'Removing…') : t('settings_unpair_title')}
         cancelLabel={t('cancel')}
         danger

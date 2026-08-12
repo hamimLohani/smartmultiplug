@@ -59,7 +59,7 @@ function WifiNotice({ connected, t }) {
 export default function Timers() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { deviceId, plugLabels, numPlugs } = useDevice();
+  const { devices, deviceId, plugLabels, numPlugs, selectDevice } = useDevice();
   const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
@@ -472,7 +472,23 @@ export default function Timers() {
               {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
             </span>
             <h1 className="page-title dash-title">{t('timers_title')}</h1>
-            <p className="page-subtitle dash-subtitle">{t('timers_subtitle')}</p>
+            {devices.length > 1 && deviceId ? (
+              <div className="device-select-container">
+                <select
+                  className="device-select-dropdown"
+                  value={deviceId || ''}
+                  onChange={(e) => selectDevice(e.target.value)}
+                >
+                  {devices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      🔌 {d.name || 'Smart Multi-Plug'} ({d.id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="page-subtitle dash-subtitle">{t('timers_subtitle')}</p>
+            )}
           </div>
           <div className="dash-status-wrap">
             <OnlineIndicator online={online} />

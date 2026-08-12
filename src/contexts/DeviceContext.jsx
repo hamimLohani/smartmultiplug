@@ -8,8 +8,10 @@ const DeviceContext = createContext(null);
 
 export function DeviceProvider({ children }) {
   const { user, mqttOk } = useAuth();
-  const [device, setDevice]     = useState(isFirebaseConfigured ? undefined : null); // undefined = loading
-  const [deviceId, setDeviceId] = useState(null);
+  const [devices, setDevices] = useState(isFirebaseConfigured ? undefined : []); // undefined = loading
+  const [activeDeviceId, setActiveDeviceId] = useState(() => {
+    return localStorage.getItem('active_device_id') || null;
+  });
   const [plugLabels, setPlugLabels] = useState({
     1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4',
   });
@@ -20,59 +22,83 @@ export function DeviceProvider({ children }) {
     return 4; // default
   };
 
-  const numPlugs = deviceId ? getNumPlugsFromId(deviceId) : 4;
+  const numPlugs = activeDeviceId ? getNumPlugsFromId(activeDeviceId) : 4;
 
+  // Listen for the user's paired devices in Firebase DB
   useEffect(() => {
     if (!isFirebaseConfigured || !db || !user) {
-      setDevice(null);
-      setDeviceId(null);
+      setDevices([]);
+      setActiveDeviceId(null);
+      localStorage.removeItem('active_device_id');
       return;
     }
 
     const devicesRef = ref(db, `users/${user.uid}/devices`);
     const handleValue = (snap) => {
       if (!snap.exists()) {
-        setDevice(null);
-        setDeviceId(null);
+        setDevices([]);
+        setActiveDeviceId(null);
+        localStorage.removeItem('active_device_id');
         return;
       }
       const data = snap.val();
-      const [id, info] = Object.entries(data)[0];
-      setDeviceId(id);
-      setDevice(info);
+      const list = Object.entries(data).map(([id, info]) => ({ id, ...info }));
+      setDevices(list);
 
-      // Load plug labels dynamically based on model
-      if (info?.plugs) {
-        const labels = {};
-        const count = getNumPlugsFromId(id);
-        for (let n = 1; n <= count; n++) {
-          labels[n] = info.plugs?.[n]?.label ?? `Plug ${n}`;
+      // Auto-select activeDeviceId if it is not set or not in the list of devices anymore
+      setActiveDeviceId((prev) => {
+        if (prev && list.some(d => d.id === prev)) {
+          return prev;
         }
-        setPlugLabels(labels);
-      }
+        const nextId = list[0]?.id || null;
+        if (nextId) {
+          localStorage.setItem('active_device_id', nextId);
+        } else {
+          localStorage.removeItem('active_device_id');
+        }
+        return nextId;
+      });
     };
 
     onValue(devicesRef, handleValue);
     return () => off(devicesRef, 'value', handleValue);
   }, [user]);
 
+  // Load plug labels dynamically based on selected active device model and labels
+  useEffect(() => {
+    if (!devices || devices.length === 0 || !activeDeviceId) {
+      setPlugLabels({ 1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4' });
+      return;
+    }
+
+    const activeDev = devices.find(d => d.id === activeDeviceId);
+    if (activeDev) {
+      const labels = {};
+      const count = getNumPlugsFromId(activeDeviceId);
+      for (let n = 1; n <= count; n++) {
+        labels[n] = activeDev.plugs?.[n]?.label ?? `Plug ${n}`;
+      }
+      setPlugLabels(labels);
+    }
+  }, [devices, activeDeviceId]);
+
   // Listen for unpairing triggered from the ESP physical menu
   useEffect(() => {
-    if (!user || !deviceId || !mqttOk) return;
+    if (!user || !activeDeviceId || !mqttOk) return;
 
     let unsubUserEvent = null;
     let unsubDeviceEvent = null;
 
     import('../mqtt').then(({ subscribe, publish }) => {
-      const userTopic = `users/${user.uid}/devices/${deviceId}/unpair_event`;
-      const deviceTopic = `devices/${deviceId}/unpair_event`;
+      const userTopic = `users/${user.uid}/devices/${activeDeviceId}/unpair_event`;
+      const deviceTopic = `devices/${activeDeviceId}/unpair_event`;
 
       const handleUnpairEvent = async (msg) => {
         if (msg === 'unpair') {
           console.log('[DeviceContext] Received unpair command from device via MQTT');
           try {
-            const deviceRef = ref(db, `devices/${deviceId}`);
-            const userDeviceRef = ref(db, `users/${user.uid}/devices/${deviceId}`);
+            const deviceRef = ref(db, `devices/${activeDeviceId}`);
+            const userDeviceRef = ref(db, `users/${user.uid}/devices/${activeDeviceId}`);
 
             // 1. Remove device pairing details in Firebase DB
             await update(deviceRef, {
@@ -87,7 +113,18 @@ export function DeviceProvider({ children }) {
 
             // 3. Inform user
             toast.success('Device was unpaired from the physical menu.');
-            clearDevice();
+            
+            // Adjust activeDeviceId
+            setActiveDeviceId((prev) => {
+              const remaining = (devices || []).filter(d => d.id !== activeDeviceId);
+              const nextId = remaining[0]?.id || null;
+              if (nextId) {
+                localStorage.setItem('active_device_id', nextId);
+              } else {
+                localStorage.removeItem('active_device_id');
+              }
+              return nextId;
+            });
           } catch (err) {
             console.error('[DeviceContext] Error processing unpair from MQTT:', err);
           }
@@ -102,41 +139,60 @@ export function DeviceProvider({ children }) {
       if (unsubUserEvent) unsubUserEvent();
       if (unsubDeviceEvent) unsubDeviceEvent();
     };
-  }, [user, deviceId, mqttOk]);
+  }, [user, activeDeviceId, mqttOk, devices]);
 
+  // Periodically trigger sync on active device state load
   useEffect(() => {
-    if (user && deviceId && mqttOk) {
+    if (user && activeDeviceId && mqttOk) {
       import('../mqtt').then(({ publish }) => {
-        const topic = `users/${user.uid}/devices/${deviceId}/sync`;
+        const topic = `users/${user.uid}/devices/${activeDeviceId}/sync`;
         console.log(`[DeviceContext] Publishing sync message to topic: ${topic}`);
         publish(topic, "sync", { retain: false, qos: 1 });
       });
     }
-  }, [user, deviceId, mqttOk]);
+  }, [user, activeDeviceId, mqttOk]);
 
   const updatePlugLabel = async (plugNum, label) => {
-    if (!isFirebaseConfigured || !user || !deviceId) return;
+    if (!isFirebaseConfigured || !user || !activeDeviceId) return;
     await update(
-      ref(db, `users/${user.uid}/devices/${deviceId}/plugs/${plugNum}`),
+      ref(db, `users/${user.uid}/devices/${activeDeviceId}/plugs/${plugNum}`),
       { label }
     );
     setPlugLabels((prev) => ({ ...prev, [plugNum]: label }));
   };
 
-  const clearDevice = () => {
-    setDevice(null);
-    setDeviceId(null);
+  const updateDeviceName = async (name) => {
+    if (!isFirebaseConfigured || !user || !activeDeviceId) return;
+    await update(
+      ref(db, `users/${user.uid}/devices/${activeDeviceId}`),
+      { name }
+    );
   };
 
+  const clearDevice = () => {
+    setActiveDeviceId(null);
+    localStorage.removeItem('active_device_id');
+  };
+
+  const selectDevice = (id) => {
+    setActiveDeviceId(id);
+    localStorage.setItem('active_device_id', id);
+  };
+
+  const device = devices && activeDeviceId ? devices.find(d => d.id === activeDeviceId) : null;
+
   const value = {
+    devices: devices || [],
     device,
-    deviceId,
+    deviceId: activeDeviceId,
     plugLabels,
     updatePlugLabel,
+    updateDeviceName,
     clearDevice,
+    selectDevice,
     numPlugs,
-    loading: device === undefined,
-    hasPairedDevice: device !== null && device !== undefined,
+    loading: devices === undefined,
+    hasPairedDevice: devices !== null && devices !== undefined && devices.length > 0,
   };
 
   return (

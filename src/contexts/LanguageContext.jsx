@@ -69,7 +69,7 @@ const translations = {
     settings_new_pw: 'New Password',
     settings_confirm_pw: 'Confirm New Password',
     settings_confirm_unpair_title: 'Unpair Multi-Plug?',
-    settings_confirm_unpair_body: 'Are you sure you want to remove this multi-plug from your account? You will have to pair it again to control it.',
+    settings_confirm_unpair_body: 'Are you sure you want to remove this multi-plug ({deviceId}) from your account? You will have to pair it again to control it.',
     settings_confirm_logout_title: 'Sign Out',
     settings_confirm_logout_body: 'Are you sure you want to sign out of your account?',
 
@@ -215,7 +215,7 @@ const translations = {
     settings_new_pw: 'নতুন পাসওয়ার্ড',
     settings_confirm_pw: 'নতুন পাসওয়ার্ড নিশ্চিত করুন',
     settings_confirm_unpair_title: 'প্লাগ রিমুভ করবেন?',
-    settings_confirm_unpair_body: 'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে এই মাল্টি-প্লাগটি রিমুভ করতে চান? রিমুভ করলে এটি আবার নতুন কোড দিয়ে কানেক্ট করতে হবে।',
+    settings_confirm_unpair_body: 'আপনি কি নিশ্চিত যে আপনার অ্যাকাউন্ট থেকে এই মাল্টি-প্লাগটি ({deviceId}) রিমুভ করতে চান? রিমুভ করলে এটি আবার নতুন ডিভাইস আইডি দিয়ে কানেক্ট করতে হবে।',
     settings_confirm_logout_title: 'লগ আউট',
     settings_confirm_logout_body: 'আপনি কি নিশ্চিত যে অ্যাকাউন্ট থেকে লগ আউট করতে চান?',
 
