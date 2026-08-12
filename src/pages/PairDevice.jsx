@@ -9,7 +9,8 @@ import toast from 'react-hot-toast';
 
 const CODE_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
 
-async function pairDeviceDirectly(deviceId, uid) {
+async function pairDeviceDirectly(deviceId, user) {
+  const uid = user.uid;
   const deviceRef = ref(db, `devices/${deviceId}`);
   const snap = await get(deviceRef);
   if (!snap.exists()) {
@@ -19,9 +20,13 @@ async function pairDeviceDirectly(deviceId, uid) {
   const deviceData = snap.val();
   const ownerUid = deviceData.claimed_by;
   if (ownerUid && ownerUid !== uid) {
-    // Add guest user UID to shared_members index on device metadata
+    // Add guest user details to shared_members index on device metadata
     await update(ref(db, `devices/${deviceId}/shared_members`), {
-      [uid]: true
+      [uid]: {
+        email: user.email || 'guest@email.com',
+        name: user.displayName || user.email || 'Guest Member',
+        shared_at: Date.now()
+      }
     });
 
     // Add device link reference to guest user's devices list
@@ -149,13 +154,13 @@ export default function PairDevice() {
           await claimDevice({ deviceId: codeToPair });
         } catch (err) {
           if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
-            await pairDeviceDirectly(codeToPair, user.uid);
+            await pairDeviceDirectly(codeToPair, user);
           } else {
             throw err;
           }
         }
       } else {
-        await pairDeviceDirectly(codeToPair, user.uid);
+        await pairDeviceDirectly(codeToPair, user);
       }
 
       setPairedId(codeToPair);

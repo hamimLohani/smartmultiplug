@@ -12,8 +12,8 @@
         ".write": "auth != null && auth.uid === $uid",
         "devices": {
           "$deviceId": {
-            ".read": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)",
-            ".write": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)"
+            ".read": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)",
+            ".write": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)"
           }
         }
       }

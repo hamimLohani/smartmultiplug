@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { auth, db, functions } from '../firebase';
 import { httpsCallable } from 'firebase/functions';
-import { ref, remove, update } from 'firebase/database';
+import { ref, remove, update, onValue, off } from 'firebase/database';
 import toast from 'react-hot-toast';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import PwaInstallRecommendation from '../components/PwaInstallRecommendation';
@@ -361,6 +361,47 @@ export default function Settings() {
       await updateDeviceName(trimmed);
     }
     setRenamingDevice(false);
+  };
+
+  const [sharedMembers, setSharedMembers] = useState([]);
+
+  useEffect(() => {
+    if (!db || !user || !deviceId || device?.is_shared) {
+      setSharedMembers([]);
+      return;
+    }
+
+    const membersRef = ref(db, `devices/${deviceId}/shared_members`);
+    const handleMembers = (snap) => {
+      if (!snap.exists()) {
+        setSharedMembers([]);
+        return;
+      }
+      const data = snap.val();
+      const list = Object.entries(data).map(([uid, details]) => ({
+        uid,
+        email: details.email || 'guest@email.com',
+        name: details.name || 'Guest Member',
+        sharedAt: details.shared_at || Date.now()
+      }));
+      setSharedMembers(list);
+    };
+
+    onValue(membersRef, handleMembers);
+    return () => off(membersRef, 'value', handleMembers);
+  }, [deviceId, device?.is_shared, user]);
+
+  const handleRevokeAccess = async (guestUid) => {
+    try {
+      // 1. Remove device reference from guest's user node
+      await remove(ref(db, `users/${guestUid}/devices/${deviceId}`));
+      // 2. Remove guest details from the device's shared members node
+      await remove(ref(db, `devices/${deviceId}/shared_members/${guestUid}`));
+      toast.success(lang === 'bn' ? 'শেয়ার করা সদস্যকে সফলভাবে রিমুভ করা হয়েছে।' : 'Shared member removed successfully.');
+    } catch (err) {
+      console.error('Failed to revoke guest access:', err);
+      toast.error(lang === 'bn' ? 'সদস্য রিমুভ করতে ব্যর্থ হয়েছে।' : 'Failed to remove shared member.');
+    }
   };
 
   const handleUnpair = async () => {
@@ -725,6 +766,45 @@ export default function Settings() {
               <ChevronRight />
             </div>
           </div>
+        )}
+
+        {/* Shared Members (Owner only) */}
+        {deviceId && !device?.is_shared && (
+          <>
+            <p className="settings-section-title">
+              {lang === 'bn' ? 'শেয়ার্ড মেম্বারস' : 'Shared Members'}
+            </p>
+            <div className="settings-group settings-group-modern">
+              {sharedMembers.length > 0 ? (
+                sharedMembers.map((member) => (
+                  <div key={member.uid} className="settings-item" style={{ cursor: 'default' }}>
+                    <div className="settings-item-left">
+                      <div className="settings-item-icon" style={{ background: 'var(--clr-surface-3)' }}>👤</div>
+                      <div>
+                        <p className="settings-item-label">{member.name}</p>
+                        <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{member.email}</p>
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleRevokeAccess(member.uid)}
+                      style={{ color: 'var(--clr-red)' }}
+                    >
+                      {lang === 'bn' ? 'রিমুভ করুন' : 'Remove'}
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="settings-item" style={{ cursor: 'default', justifyContent: 'center', padding: '20px' }}>
+                  <p style={{ color: 'var(--clr-text-subtle)', fontSize: 13, textAlign: 'center' }}>
+                    {lang === 'bn' 
+                      ? 'কোনো অ্যাকাউন্ট বা ডিভাইসের সাথে শেয়ার করা হয়নি।' 
+                      : 'This device is not shared with any other users.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {/* Help & Instructions */}
