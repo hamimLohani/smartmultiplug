@@ -404,6 +404,72 @@ export default function Settings() {
     }
   };
 
+  const [pairingRequests, setPairingRequests] = useState([]);
+
+  useEffect(() => {
+    if (!db || !user || !deviceId || device?.is_shared) {
+      setPairingRequests([]);
+      return;
+    }
+
+    const reqsRef = ref(db, `devices/${deviceId}/pairing_requests`);
+    const handleReqs = (snap) => {
+      if (!snap.exists()) {
+        setPairingRequests([]);
+        return;
+      }
+      const data = snap.val();
+      const list = Object.entries(data).map(([uid, details]) => ({
+        uid,
+        email: details.email || 'guest@email.com',
+        name: details.name || 'Guest Member',
+        requestedAt: details.requested_at || Date.now()
+      }));
+      setPairingRequests(list);
+    };
+
+    onValue(reqsRef, handleReqs);
+    return () => off(reqsRef, 'value', handleReqs);
+  }, [deviceId, device?.is_shared, user]);
+
+  const handleAcceptRequest = async (request) => {
+    try {
+      // 1. Add guest details to device shared_members
+      await update(ref(db, `devices/${deviceId}/shared_members/${request.uid}`), {
+        email: request.email,
+        name: request.name,
+        shared_at: Date.now()
+      });
+
+      // 2. Add device link under guest user's account path
+      await update(ref(db, `users/${request.uid}/devices/${deviceId}`), {
+        name: device?.name || 'Smart Multi-Plug',
+        is_shared: true,
+        owner_uid: user.uid,
+        paired_at: Date.now()
+      });
+
+      // 3. Remove from pairing requests
+      await remove(ref(db, `devices/${deviceId}/pairing_requests/${request.uid}`));
+
+      toast.success(lang === 'bn' ? 'অনুরোধটি অনুমোদন করা হয়েছে।' : 'Request approved successfully.');
+    } catch (err) {
+      console.error('Failed to approve request:', err);
+      toast.error(lang === 'bn' ? 'অনুমোদন করতে ব্যর্থ হয়েছে।' : 'Failed to approve request.');
+    }
+  };
+
+  const handleRejectRequest = async (guestUid) => {
+    try {
+      // Remove from pairing requests
+      await remove(ref(db, `devices/${deviceId}/pairing_requests/${guestUid}`));
+      toast.success(lang === 'bn' ? 'অনুরোধটি বাতিল করা হয়েছে।' : 'Request rejected.');
+    } catch (err) {
+      console.error('Failed to reject request:', err);
+      toast.error(lang === 'bn' ? 'বাতিল করতে ব্যর্থ হয়েছে।' : 'Failed to reject request.');
+    }
+  };
+
   const handleUnpair = async () => {
     if (!mqttOk) {
       toast.error(
@@ -766,6 +832,42 @@ export default function Settings() {
               <ChevronRight />
             </div>
           </div>
+        )}
+        {/* Pairing Requests (Owner only) */}
+        {deviceId && !device?.is_shared && pairingRequests.length > 0 && (
+          <>
+            <p className="settings-section-title">
+              {lang === 'bn' ? 'কানেক্ট করার অনুরোধ' : 'Pairing Requests'}
+            </p>
+            <div className="settings-group settings-group-modern">
+              {pairingRequests.map((request) => (
+                <div key={request.uid} className="settings-item" style={{ cursor: 'default' }}>
+                  <div className="settings-item-left">
+                    <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)' }}>⏳</div>
+                    <div>
+                      <p className="settings-item-label">{request.name}</p>
+                      <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{request.email}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAcceptRequest(request)}
+                    >
+                      {lang === 'bn' ? 'অনুমোদন করুন' : 'Accept'}
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleRejectRequest(request.uid)}
+                      style={{ background: 'rgba(239, 68, 68, 0.15)', color: 'var(--clr-red)', border: 'none' }}
+                    >
+                      {lang === 'bn' ? 'বাতিল করুন' : 'Reject'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Shared Members (Owner only) */}

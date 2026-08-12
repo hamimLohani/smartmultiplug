@@ -3,7 +3,13 @@
     "devices": {
       "$deviceId": {
         ".read": "auth != null",
-        ".write": "auth != null"
+        ".write": "auth != null",
+        "pairing_requests": {
+          "$guestUid": {
+            ".read": "auth != null && (auth.uid === $guestUid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid)",
+            ".write": "auth != null && (auth.uid === $guestUid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid || (!data.exists() && newData.exists() && auth.uid === $guestUid))"
+          }
+        }
       }
     },
     "users": {

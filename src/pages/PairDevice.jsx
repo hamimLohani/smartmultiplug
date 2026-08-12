@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, functions } from '../firebase';
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, onValue, off, remove } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -20,24 +20,15 @@ async function pairDeviceDirectly(deviceId, user) {
   const deviceData = snap.val();
   const ownerUid = deviceData.claimed_by;
   if (ownerUid && ownerUid !== uid) {
-    // Add guest user details to shared_members index on device metadata
-    await update(ref(db, `devices/${deviceId}/shared_members`), {
-      [uid]: {
-        email: user.email || 'guest@email.com',
-        name: user.displayName || user.email || 'Guest Member',
-        shared_at: Date.now()
-      }
+    // Write guest details to devices pairing requests path
+    const reqRef = ref(db, `devices/${deviceId}/pairing_requests/${uid}`);
+    await update(reqRef, {
+      email: user.email || 'guest@email.com',
+      name: user.displayName || user.email || 'Guest Member',
+      requested_at: Date.now(),
+      status: "pending"
     });
-
-    // Add device link reference to guest user's devices list
-    const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
-    await update(userDeviceRef, {
-      name: deviceData.name || 'Smart Multi-Plug',
-      is_shared: true,
-      owner_uid: ownerUid,
-      paired_at: Date.now(),
-    });
-    return;
+    throw new Error('awaiting-approval');
   }
 
   await update(deviceRef, {
@@ -97,6 +88,45 @@ export default function PairDevice() {
   const [step, setStep] = useState(1); // 1=enter code, 2=success
   const [error, setError] = useState('');
   const [pairedId, setPairedId] = useState('');
+  const [approvalStatus, setApprovalStatus] = useState(null); // null | 'pending' | 'rejected'
+
+  useEffect(() => {
+    if (!user || !pairedId || approvalStatus !== 'pending') return;
+
+    const userDeviceRef = ref(db, `users/${user.uid}/devices/${pairedId}`);
+    const reqRef = ref(db, `devices/${pairedId}/pairing_requests/${user.uid}`);
+
+    const handleUserDeviceValue = (snap) => {
+      if (snap.exists()) {
+        setApprovalStatus(null);
+        setStep(2);
+      }
+    };
+
+    const handleReqValue = (snap) => {
+      if (!snap.exists()) {
+        setTimeout(async () => {
+          const checkLinked = await get(userDeviceRef);
+          if (!checkLinked.exists()) {
+            setApprovalStatus('rejected');
+          }
+        }, 1500);
+      } else {
+        const data = snap.val();
+        if (data.status === 'rejected') {
+          setApprovalStatus('rejected');
+        }
+      }
+    };
+
+    onValue(userDeviceRef, handleUserDeviceValue);
+    onValue(reqRef, handleReqValue);
+
+    return () => {
+      off(userDeviceRef, 'value', handleUserDeviceValue);
+      off(reqRef, 'value', handleReqValue);
+    };
+  }, [user, pairedId, approvalStatus]);
 
   const handleInput = (ev) => {
     const raw = ev.target.value.toUpperCase();
@@ -166,6 +196,11 @@ export default function PairDevice() {
       setPairedId(codeToPair);
       setStep(2);
     } catch (err) {
+      if (err.message === 'awaiting-approval') {
+        setPairedId(codeToPair);
+        setApprovalStatus('pending');
+        return;
+      }
       console.error('[PairDevice] Claim error:', err);
       if (err.message?.includes('already-claimed') || err.code?.includes('already-claimed')) {
         setError(
@@ -186,6 +221,70 @@ export default function PairDevice() {
       setLoading(false);
     }
   };
+
+  if (approvalStatus === 'pending') {
+    return (
+      <div className="pair-page">
+        <div className="bg-mesh" />
+        <div className="pair-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div className="spinner" style={{ width: 48, height: 48, borderWidth: 3, margin: '0 auto 24px auto' }} />
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>
+            {lang === 'bn' ? 'অনুমোদনের জন্য অপেক্ষা করা হচ্ছে' : 'Awaiting Approval'}
+          </h2>
+          <p style={{ color: 'var(--clr-text-subtle)', fontSize: 14, lineHeight: 1.5, marginBottom: 24 }}>
+            {lang === 'bn'
+              ? `আপনার অনুরোধটি ডিভাইস মালিকের কাছে পাঠানো হয়েছে। মালিক অনুমোদন করলে এই পেজটি স্বয়ংক্রিয়ভাবে পরিবর্তিত হবে। (ডিভাইস আইডি: ${pairedId})`
+              : `Your pairing request has been sent to the device owner. This page will automatically update once they approve. (Device ID: ${pairedId})`}
+          </p>
+          <button
+            className="btn btn-secondary"
+            onClick={async () => {
+              try {
+                await remove(ref(db, `devices/${pairedId}/pairing_requests/${user.uid}`));
+              } catch (e) {}
+              setApprovalStatus(null);
+              setStep(1);
+            }}
+          >
+            {lang === 'bn' ? 'অনুরোধ বাতিল করুন' : 'Cancel Request'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (approvalStatus === 'rejected') {
+    return (
+      <div className="pair-page">
+        <div className="bg-mesh" />
+        <div className="pair-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <div className="pair-error-icon" style={{
+            width: 60, height: 60, borderRadius: '50%',
+            background: 'var(--clr-red-dim)', color: 'var(--clr-red)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 30, fontWeight: 'bold', margin: '0 auto 20px auto'
+          }}>✗</div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, color: 'var(--clr-red)' }}>
+            {lang === 'bn' ? 'অনুরোধটি বাতিল করা হয়েছে' : 'Request Rejected'}
+          </h2>
+          <p style={{ color: 'var(--clr-text-subtle)', fontSize: 14, lineHeight: 1.5, marginBottom: 24 }}>
+            {lang === 'bn'
+              ? `দুঃখিত, এই ডিভাইসটির মালিক আপনার অনুরোধটি অনুমোদন করেননি। সঠিক ডিভাইস আইডি দিয়ে আবার চেষ্টা করুন বা মালিকের সাথে যোগাযোগ করুন।`
+              : `Sorry, the owner of this device did not approve your pairing request. Please check the Device ID and try again.`}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setApprovalStatus(null);
+              setStep(1);
+            }}
+          >
+            {lang === 'bn' ? 'আবার চেষ্টা করুন' : 'Try Again'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 2) {
     return (
