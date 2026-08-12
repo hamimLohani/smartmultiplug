@@ -781,8 +781,14 @@ export default function Settings() {
                     <div className="settings-item-left">
                       <div className="settings-item-icon" style={{ background: 'var(--clr-surface-3)' }}>👤</div>
                       <div>
-                        <p className="settings-item-label">{member.name}</p>
-                        <p style={{ fontSize: 11, color: 'var(--clr-text-subtle)', fontFamily: 'var(--font-mono)' }}>{member.email}</p>
+                        <p className="settings-item-label">
+                          {member.name && member.name !== member.email ? member.name : member.email}
+                        </p>
+                        {member.name && member.name !== member.email && (
+                          <p style={{ fontSize: 12, color: 'var(--clr-text-subtle)' }}>
+                            {member.email}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <button
