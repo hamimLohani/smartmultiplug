@@ -468,9 +468,6 @@ export default function Timers() {
               <h1 className="timers-hero-title">{t('timers_title')}</h1>
               <p className="timers-hero-subtitle">{t('timers_subtitle')}</p>
             </div>
-            <div className="timers-hero-orbit" aria-hidden="true">
-              <span className="timers-hero-glyph">{mode === 'delay' ? '⏱' : '📅'}</span>
-            </div>
           </div>
           <div className={`app-layer-status ${online === false ? 'offline' : mqttOk ? 'online' : 'pending'}`}>
             <span className="app-layer-status-dot" />
