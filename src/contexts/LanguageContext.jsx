@@ -57,6 +57,7 @@ const translations = {
 
     // Settings Page
     settings_title: 'Settings',
+    settings_subtitle: 'Manage your profile and device configurations',
     settings_account: 'Account Settings',
     settings_logged_in: 'Logged in as',
     settings_change_pw: 'Change Password',
@@ -202,6 +203,7 @@ const translations = {
 
     // Settings Page
     settings_title: 'সেটিংস',
+    settings_subtitle: 'অ্যাকাউন্ট ও ডিভাইস সেটিংস পরিবর্তন করুন',
     settings_account: 'অ্যাকাউন্ট সেটিংস',
     settings_logged_in: 'লগইন করা আইডি',
     settings_change_pw: 'পাসওয়ার্ড পরিবর্তন',

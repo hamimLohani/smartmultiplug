@@ -8,6 +8,7 @@ import { ref, set, push, remove, onValue, off } from 'firebase/database';
 import { db } from '../firebase';
 import ActiveTimersList from '../components/ActiveTimersList';
 import toast from 'react-hot-toast';
+import OnlineIndicator from '../components/OnlineIndicator';
 
 const DELAY_PRESETS = [
   { label: '1 min', value: 1 },
@@ -459,29 +460,19 @@ export default function Timers() {
       <div className="bg-mesh" />
 
       <div className="container timers-container">
-        <div className="app-layer-hero timers-layer-hero">
-          <div className="timers-hero">
-            <div>
-              <span className="timers-kicker">
-                {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
-              </span>
-              <h1 className="timers-hero-title">{t('timers_title')}</h1>
-              <p className="timers-hero-subtitle">{t('timers_subtitle')}</p>
-            </div>
-          </div>
-          <div className={`app-layer-status ${online === false ? 'offline' : mqttOk ? 'online' : 'pending'}`}>
-            <span className="app-layer-status-dot" />
-            <span>
-              {online === false
-                ? (lang === 'bn' ? 'অফলাইন' : 'Offline')
-                : mqttOk
-                  ? (lang === 'bn' ? 'অনলাইন' : 'Online')
-                  : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
+        <div className="dash-hero">
+          <div>
+            <span className="dash-kicker">
+              {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
             </span>
+            <h1 className="page-title dash-title">{t('timers_title')}</h1>
+            <p className="page-subtitle dash-subtitle">{t('timers_subtitle')}</p>
+          </div>
+          <div className="dash-status-wrap">
+            <OnlineIndicator online={online} />
           </div>
         </div>
 
-        {/* Device Offline Warning Banner */}
         {mqttOk && online === false && (
           <div className="timers-alert timers-alert-offline">
             <span className="timers-alert-icon">⚠️</span>

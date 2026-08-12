@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDevice } from '../contexts/DeviceContext';
@@ -11,6 +11,8 @@ import { ref, remove, update } from 'firebase/database';
 import toast from 'react-hot-toast';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import PwaInstallRecommendation from '../components/PwaInstallRecommendation';
+import { useMqttSubscribe } from '../hooks/useMqtt';
+import OnlineIndicator from '../components/OnlineIndicator';
 
 function ChevronRight() {
   return (
@@ -268,6 +270,58 @@ export default function Settings() {
   const { theme, setTheme }        = useTheme();
   const navigate                   = useNavigate();
 
+  const [online, setOnline] = useState(null);
+  const lastResponseTimeRef = useRef(null);
+  const syncStartTimeRef = useRef(0);
+
+  const baseTopic = user && deviceId ? `users/${user.uid}/devices/${deviceId}` : null;
+
+  const handleIncomingMessage = useCallback((msg, topic) => {
+    const now = Date.now();
+    lastResponseTimeRef.current = now;
+
+    if (msg === 'offline' || msg === '0' || msg === 'false') {
+      if (topic?.endsWith('/status')) {
+        setOnline(false);
+        return;
+      }
+    }
+
+    if (msg === 'online' || msg === '1' || msg === 'true') {
+      if (syncStartTimeRef.current > 0 && now >= syncStartTimeRef.current) {
+        setOnline(true);
+      }
+    }
+  }, []);
+
+  useMqttSubscribe(
+    baseTopic ? `${baseTopic}/status` : null,
+    (msg, topic) => {
+      handleIncomingMessage(msg, topic);
+      if (msg === 'offline') {
+        setOnline(false);
+      } else if (msg === 'online' && syncStartTimeRef.current > 0 && Date.now() >= syncStartTimeRef.current) {
+        setOnline(true);
+      }
+    },
+  );
+
+  // Perform sync check on mount
+  useEffect(() => {
+    if (!baseTopic || !mqttOk) return;
+
+    syncStartTimeRef.current = Date.now();
+    const initialTimer = setTimeout(() => {
+      if (lastResponseTimeRef.current && Date.now() - lastResponseTimeRef.current < 5000) {
+        setOnline(true);
+      } else {
+        setOnline(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(initialTimer);
+  }, [baseTopic, mqttOk]);
+
   const [showUnpair, setShowUnpair]     = useState(false);
   const [showLogout, setShowLogout]     = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
@@ -343,25 +397,17 @@ export default function Settings() {
   return (
     <div className="page-wrap">
       <div className="bg-mesh" />
-
       <div className="container settings-container">
-        <div className="app-layer-hero settings-layer-hero">
-          <div className="settings-hero">
-            <div>
-              <span className="settings-kicker">
-                {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
-              </span>
-              <h1 className="settings-title">{t('settings_title')}</h1>
-            </div>
-            <span className={`badge ${mqttOk ? 'badge-green' : 'badge-amber'}`}>
-              {mqttOk ? (lang === 'bn' ? 'অনলাইন' : 'Online') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
+        <div className="dash-hero">
+          <div>
+            <span className="dash-kicker">
+              {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
             </span>
+            <h1 className="page-title dash-title">{t('settings_title')}</h1>
+            <p className="page-subtitle dash-subtitle">{t('settings_subtitle')}</p>
           </div>
-          <div className={`app-layer-status ${mqttOk ? 'online' : 'pending'}`}>
-            <span className="app-layer-status-dot" />
-            <span>
-              {mqttOk ? (lang === 'bn' ? 'লাইভ কানেকশন' : 'Live connection') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
-            </span>
+          <div className="dash-status-wrap">
+            <OnlineIndicator online={deviceId ? online : mqttOk} />
           </div>
         </div>
 
