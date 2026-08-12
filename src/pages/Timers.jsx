@@ -20,6 +20,17 @@ const DELAY_PRESETS = [
 const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DAYS_SHORT_BN = ['সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি', 'রবি'];
 const DAYS_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const ONCE_CLEANUP_GRACE_MS = 15000;
+
+function isOnceSchedule(timer) {
+  return timer?.type === 'schedule' && (timer.repeat === 'once' || timer.days === 'once');
+}
+
+function scheduleMatchesTimer(schedule, timer) {
+  return schedule?.enabled !== false &&
+    schedule?.time === timer.time &&
+    schedule?.action === timer.action;
+}
 
 function WifiNotice({ connected, t }) {
   if (connected) {
@@ -185,43 +196,41 @@ export default function Timers() {
     return () => off(schedRef, 'value', handle);
   }, [user, deviceId]);
 
-  // Clean up completed 'once' schedules from RTDB once they are executed/removed on the device
+  // Clean up completed 'once' schedules from RTDB after the device executes
+  // them and republishes a schedule list without the fired item.
   useEffect(() => {
-    console.log('[Sync Hook] Triggered. activeTimers:', activeTimers, 'mqttSchedules:', mqttSchedules);
     if (!db || !user || !deviceId) return;
 
-    activeTimers.forEach(async (timer) => {
-      console.log('[Sync Hook] Checking timer:', timer);
-      if (
-        timer.type === 'schedule' &&
-        (timer.repeat === 'once' || timer.days === 'once') &&
-        (!timer.createdAt || Date.now() - timer.createdAt > 15000)
-      ) {
-        const deviceList = mqttSchedules[timer.plugNum];
-        console.log('[Sync Hook] deviceList for plug', timer.plugNum, 'is:', deviceList);
-        if (Array.isArray(deviceList)) {
-          // Check if this schedule is still present and enabled in the device's MQTT list
-          const existsOnDevice = deviceList.some(
-            (item) => {
-              console.log('[Sync Hook] Comparing RTDB timer', timer.time, timer.action, 'with MQTT item', item.time, item.action, item.enabled);
-              return item.time === timer.time &&
-                     item.action === timer.action &&
-                     item.enabled;
-            }
-          );
+    const cleanupFinishedOnceSchedules = async () => {
+      const now = Date.now();
+      const finishedOnceTimers = activeTimers.filter((timer) => {
+        if (!isOnceSchedule(timer)) return false;
+        if (timer.createdAt && now - timer.createdAt < ONCE_CLEANUP_GRACE_MS) return false;
 
-          console.log('[Sync Hook] existsOnDevice:', existsOnDevice);
-          if (!existsOnDevice) {
-            console.log(`[Sync] Deleting finished 'once' schedule (${timer.time} for Plug ${timer.plugNum}) from RTDB.`);
-            try {
-              await remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`));
-            } catch (err) {
-              console.error('Failed to auto-delete finished schedule from RTDB:', err);
-            }
-          }
-        }
+        const deviceList = mqttSchedules[timer.plugNum];
+        if (!Array.isArray(deviceList)) return false;
+
+        return !deviceList.some((item) => scheduleMatchesTimer(item, timer));
+      });
+
+      if (finishedOnceTimers.length === 0) return;
+
+      setActiveTimers((prev) =>
+        prev.filter((timer) => !finishedOnceTimers.some((done) => done.id === timer.id))
+      );
+
+      try {
+        await Promise.all(
+          finishedOnceTimers.map((timer) =>
+            remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`))
+          )
+        );
+      } catch (err) {
+        console.error('Failed to auto-delete finished once schedule from RTDB:', err);
       }
-    });
+    };
+
+    cleanupFinishedOnceSchedules();
   }, [db, user, deviceId, activeTimers, mqttSchedules]);
 
   const getDelayMinutes = () => {
