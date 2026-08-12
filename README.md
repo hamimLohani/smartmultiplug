@@ -1,6 +1,6 @@
 # Smart Multi-Plug — Web Dashboard
 
-A production-grade web application for controlling a WiFi-enabled 4-outlet smart power strip (ESP8266-based). Built with **React + Vite**, **Firebase Auth + Realtime Database**, and **MQTT over WebSockets**.
+A production-grade web application for controlling a WiFi-enabled smart power strip (ESP8266-based). Built with **React + Vite**, **Firebase Auth + Realtime Database**, and **MQTT over WebSockets**.
 
 ---
 
@@ -8,11 +8,12 @@ A production-grade web application for controlling a WiFi-enabled 4-outlet smart
 
 - 🔐 **Email/password + Google sign-in** via Firebase Auth
 - 🔌 **Real-time plug control** — MQTT-driven with optimistic UI and automatic revert if device doesn't respond
-- 📶 **Live online/offline status** via MQTT retained LWT topic  
-- ⏱ **Advanced Timers** — delay countdowns (device-clock based) and scheduled on/off times (WiFi clock based)
-- 📝 **Tap-to-rename** outlets — saved to Firebase Realtime Database
-- 🔗 **Secure device pairing** via Firebase Cloud Functions
-- 📱 **Mobile-first dark UI** — glassmorphism, micro-animations, premium feel
+- 🔄 **Multi-Device Support** — Seamlessly register, nick-name, and toggle control between multiple smart multi-plugs using a glassmorphic header dropdown
+- 👥 **Family Sharing & Approvals** — Invite family members to control your plugs. Guest requests are held in a pending queue until the owner approves them
+- 📶 **Live online/offline status** — Real-time indicators with unified paired/unpaired states across Dashboard, Timers, and Settings
+- ⏱ **Advanced Timers** — Delay countdowns (device-clock based) and scheduled on/off times (WiFi clock based)
+- 📝 **Tap-to-rename** outlets and strips — Saved to Firebase Realtime Database and synced across all family members in real-time
+- 📱 **Mobile-first dark UI** — Glassmorphism, micro-animations, premium feel
 
 ---
 
@@ -40,11 +41,15 @@ Open `.env` and fill in all values (see §Environment Variables below).
 npm run dev
 ```
 
-### 4. Deploy to Firebase Hosting
+### 4. Deploy Database Rules & Hosting
 
 ```bash
+# Deploy RTDB Security Rules
+firebase deploy --only database
+
+# Build and deploy hosting
 npm run build
-firebase deploy
+firebase deploy --only hosting
 ```
 
 ---
@@ -72,7 +77,7 @@ All secrets are loaded from `.env` — **never committed to the repo**.
 
 1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
 2. Enable **Authentication** → Sign-in methods → Email/Password + Google
-3. Enable **Realtime Database** (start in locked mode, then deploy `database.rules.json`)
+3. Enable **Realtime Database** (start in locked mode, then deploy local `database.rules.json` using the Firebase CLI)
 4. Register a **Web App** and copy the config into `.env`
 5. Deploy Cloud Functions:
    ```bash
@@ -101,16 +106,35 @@ This is intentionally out of scope for this codebase (done by your provisioning 
 
 ## MQTT Topic Structure
 
-All topics are scoped to the authenticated user and device:
+All topics are scoped to the device owner's UID and the device ID:
 
 ```
-users/{uid}/devices/{deviceId}/plug/{1-4}/set          ← publish (website → device)
-users/{uid}/devices/{deviceId}/plug/{1-4}/state        ← subscribe, retained (device → website)
-users/{uid}/devices/{deviceId}/plug/{1-4}/schedule     ← publish, retained (JSON array)
-users/{uid}/devices/{deviceId}/plug/{1-4}/timer/set    ← publish (start/cancel delay timer)
-users/{uid}/devices/{deviceId}/plug/{1-4}/timer/state  ← subscribe, retained (countdown state)
-users/{uid}/devices/{deviceId}/status                  ← subscribe, retained LWT (online/offline)
+users/{ownerUid}/devices/{deviceId}/plug/{1-4}/set          ← publish (website → device)
+users/{ownerUid}/devices/{deviceId}/plug/{1-4}/state        ← subscribe, retained (device → website)
+users/{ownerUid}/devices/{deviceId}/plug/{1-4}/schedule     ← publish, retained (JSON array)
+users/{ownerUid}/devices/{deviceId}/plug/{1-4}/timer/set    ← publish (start/cancel delay timer)
+users/{ownerUid}/devices/{deviceId}/plug/{1-4}/timer/state  ← subscribe, retained (countdown state)
+users/{ownerUid}/devices/{deviceId}/status                  ← subscribe, retained LWT (online/offline)
 ```
+
+Guests and shared members dynamically resolve the `ownerUid` of the active device from the database to ensure all controls publish to the single source of truth namespace the physical plug is listening to.
+
+---
+
+## Family Sharing Architecture & Security
+
+### 1. Pairing Approvals
+
+If a device is already claimed by an owner:
+- A guest user entering the same Device ID submits a pairing request to `devices/${deviceId}/pairing_requests/${guestUid}` containing their name and Gmail.
+- The guest's pairing screen enters a real-time listening state showing **Awaiting Owner Approval**.
+- The owner sees the pending request in their **Settings** page and can **Accept** or **Reject** it.
+
+### 2. Owner Revocation
+
+The owner can view all active shared guest Gmail addresses in the **Shared Members** card under settings. 
+- Revoking a guest removes their UID from the device's shared members index and deletes the device reference node from the guest's personal path (`users/${guestUid}/devices/${deviceId}`).
+- Upgraded Firebase RTDB Security Rules authorize the owner (`claimed_by === auth.uid`) to write and clean up nodes inside the guests' personal path.
 
 ---
 
@@ -128,13 +152,6 @@ Currently the app uses static MQTT credentials stored in environment variables (
 - Issue short-lived MQTT credentials from a Cloud Function on login, using HiveMQ's REST API or a custom JWT auth plugin
 - Implement topic-level ACLs on the broker so each user can only pub/sub their own `users/{uid}/*` topics
 
-### Device Claim Security
-
-The device pairing flow runs entirely in a Firebase Cloud Function (`claimDevice`). The client never writes directly to `/devices` — only the function does, after validating:
-1. The device exists in the pre-provisioned `/devices` table
-2. The device is not already claimed by another UID
-3. The requesting user is authenticated (Firebase verifies the ID token automatically)
-
 ---
 
 ## Project Structure
@@ -148,7 +165,7 @@ src/
 │
 ├── contexts/
 │   ├── AuthContext.jsx   # Firebase auth state + MQTT lifecycle
-│   └── DeviceContext.jsx # Paired device + plug labels from RTDB
+│   └── DeviceContext.jsx # Multi-device loader + owner configuration synchronization
 │
 ├── hooks/
 │   └── useMqtt.js        # useMqttSubscribe / useMqttPublish hooks
@@ -156,22 +173,22 @@ src/
 ├── pages/
 │   ├── Login.jsx         # Sign in (email + Google + password reset)
 │   ├── SignUp.jsx        # Register
-│   ├── PairDevice.jsx    # SP-xxxxxxxx claim flow
-│   ├── Dashboard.jsx     # 4-plug control panel
+│   ├── PairDevice.jsx    # SP-xxxxxxxx claim flow & owner-approval gate
+│   ├── Dashboard.jsx     # 4-plug control panel with device switcher
 │   ├── Timers.jsx        # Delay + Schedule timer panel
-│   └── Settings.jsx      # Rename, unpair, account actions
+│   └── Settings.jsx      # Rename, unpair, guest approvals, and revocation lists
 │
 ├── components/
 │   ├── PlugCard.jsx           # Individual plug toggle + inline rename
-│   ├── OnlineIndicator.jsx    # Online/offline badge
+│   ├── OnlineIndicator.jsx    # Online/offline badge (unpaired support)
 │   ├── TabBar.jsx             # Bottom navigation bar
 │   ├── ActiveTimersList.jsx   # Running timers list with countdown
 │   ├── SkeletonLoader.jsx     # Loading skeleton for dashboard
 │   └── ProtectedRoute.jsx     # Auth + device-paired route guard
 │
-└── styles/
-    └── index.css         # Full design system (dark mode, tokens, animations)
-
+├── styles/
+│   └── index.css         # Full design system (dark mode, tokens, animations)
+│
 functions/
 ├── index.js              # Cloud Functions: claimDevice, unclaimDevice
 └── package.json
@@ -182,7 +199,6 @@ functions/
 ## Future Additions (Out of Scope)
 
 - Push notifications when a timer fires
-- Multi-device support per user
 - Energy monitoring / usage history
 - Payment / subscription billing
 - OTA firmware update portal
