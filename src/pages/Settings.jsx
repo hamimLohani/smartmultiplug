@@ -775,7 +775,7 @@ export default function Settings() {
       <Modal
         show={showUnpair}
         title={t('settings_confirm_unpair_title')}
-        body={t('settings_confirm_unpair_body').replace('{deviceId}', deviceId || '')}
+        body={t('settings_confirm_unpair_body').replace('{deviceName}', device?.name || 'Smart Multi-Plug').replace('{deviceId}', deviceId || '')}
         confirmLabel={unpairing ? (lang === 'bn' ? 'মুছে ফেলা হচ্ছে…' : 'Removing…') : t('settings_unpair_title')}
         cancelLabel={t('cancel')}
         danger
