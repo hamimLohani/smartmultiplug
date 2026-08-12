@@ -458,31 +458,26 @@ export default function Timers() {
     <div className="page-wrap">
       <div className="bg-mesh" />
 
-      <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>{t('timers_title')}</h1>
-        <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', marginBottom: 24 }}>
-          {t('timers_subtitle')}
-        </p>
+      <div className="container timers-container">
+        <div className="timers-hero">
+          <div>
+            <span className="timers-kicker">
+              {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
+            </span>
+            <h1 className="timers-hero-title">{t('timers_title')}</h1>
+            <p className="timers-hero-subtitle">{t('timers_subtitle')}</p>
+          </div>
+          <div className="timers-hero-orbit" aria-hidden="true">
+            <span className="timers-hero-glyph">{mode === 'delay' ? '⏱' : '📅'}</span>
+          </div>
+        </div>
 
         {/* Device Offline Warning Banner */}
         {mqttOk && online === false && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px 18px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-            marginBottom: 20,
-            fontSize: 13,
-            lineHeight: 1.5,
-            color: '#f87171',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)',
-          }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+          <div className="timers-alert timers-alert-offline">
+            <span className="timers-alert-icon">⚠️</span>
             <div>
-              <strong style={{ display: 'block', fontSize: 14, marginBottom: 2, color: '#f87171', fontWeight: 700 }}>
+              <strong>
                 {lang === 'bn' ? 'ডিভাইসটি অফলাইনে আছে' : 'Device is Offline'}
               </strong>
               <span>
@@ -495,10 +490,10 @@ export default function Timers() {
         )}
 
         {/* Panel card */}
-        <div className="card" style={{ marginBottom: 24 }}>
+        <div className="timer-command-card">
 
           {/* Mode Toggle */}
-          <div className="timer-mode-toggle" style={{ marginBottom: 20 }}>
+          <div className="timer-mode-toggle timer-mode-toggle-modern">
             <button
               id="timer-mode-delay"
               className={`timer-mode-btn ${mode === 'delay' ? 'active' : ''}`}
@@ -518,7 +513,7 @@ export default function Timers() {
           {mode === 'schedule' && <WifiNotice connected={mqttOk} t={t} />}
 
           {/* Plug selector */}
-          <div style={{ marginTop: 20 }}>
+          <div className="timer-field-block">
             <p className="timer-section-label">{t('timers_outlet')}</p>
             <div className="chip-group">
               {Array.from({ length: numPlugs }, (_, i) => i + 1).map(n => (
@@ -535,7 +530,7 @@ export default function Timers() {
           </div>
 
           {/* Action */}
-          <div style={{ marginTop: 16 }}>
+          <div className="timer-field-block">
             <p className="timer-section-label">{t('timers_action')}</p>
             <div className="action-toggle">
               <button
@@ -557,7 +552,7 @@ export default function Timers() {
 
           {/* Mode-specific options */}
           {mode === 'delay' ? (
-            <div style={{ marginTop: 16 }}>
+            <div className="timer-field-block">
               <p className="timer-section-label">{t('timers_delay_duration')}</p>
               <div className="delay-chips">
                 {DELAY_PRESETS.map(({ label, value }) => (
@@ -573,8 +568,8 @@ export default function Timers() {
                   </button>
                 ))}
               </div>
-              <div style={{ marginTop: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="timer-custom-delay">
+                <div className="timer-custom-delay-input">
                   <input
                     id="delay-custom-min"
                     type="number"
@@ -584,19 +579,18 @@ export default function Timers() {
                     max="999"
                     value={customMin}
                     onChange={(e) => { setCustomMin(e.target.value); setDelayPreset(null); }}
-                    style={{ flex: 1 }}
                   />
-                  <span style={{ color: 'var(--clr-text-muted)', fontSize: 14, whiteSpace: 'nowrap' }}>
+                  <span>
                     {lang === 'bn' ? 'মিনিট' : 'min'}
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }} className={!mqttOk ? 'sched-disabled-layer' : ''}>
+            <div className={`timer-schedule-options ${!mqttOk ? 'sched-disabled-layer' : ''}`}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-                  <p className="timer-section-label" style={{ margin: 0 }}>{t('timers_time')}</p>
+                <div className="timer-time-row">
+                  <p className="timer-section-label">{t('timers_time')}</p>
                   
                   <div className="live-clock-badge">
                     <span className="live-clock-dot"></span>
@@ -664,34 +658,15 @@ export default function Timers() {
           )}
 
           {/* Live Timing Summary Message Card */}
-          <div style={{
-            marginTop: 20,
-            padding: '12px 16px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--clr-surface-2)',
-            border: '1px solid var(--clr-border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            fontSize: 13,
-            lineHeight: 1.45,
-          }}>
-            <span style={{ fontSize: 22 }}>
+          <div className="timer-preview-card">
+            <span className="timer-preview-icon">
               {mode === 'delay' ? '⏱️' : '📅'}
             </span>
             <div>
-              <span style={{
-                fontWeight: 700,
-                color: 'var(--clr-accent)',
-                display: 'block',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                marginBottom: 2,
-              }}>
+              <span className="timer-preview-label">
                 {lang === 'bn' ? 'টাইমিং সেট করার পূর্বরূপ (প্রিভিউ)' : 'Timer Setting Preview'}
               </span>
-              <span style={{ color: 'var(--clr-text)' }}>
+              <span className="timer-preview-text">
                 {mode === 'delay' ? (
                   getDelayMinutes() ? (
                     lang === 'bn' 
@@ -712,8 +687,7 @@ export default function Timers() {
           {/* Add button */}
           <button
             id="timer-add-btn"
-            className="btn btn-primary btn-full"
-            style={{ marginTop: 20 }}
+            className="btn btn-primary btn-full timer-add-btn"
             onClick={handleAddTimer}
             disabled={!baseTopic || (mode === 'schedule' && !mqttOk)}
           >
@@ -722,7 +696,7 @@ export default function Timers() {
         </div>
 
         {/* Active timers */}
-        <div className="section-header">
+        <div className="section-header timers-list-header">
           <span className="section-title">{t('timers_active_timers')}</span>
           <span className="badge badge-blue">{allTimers.length}</span>
         </div>

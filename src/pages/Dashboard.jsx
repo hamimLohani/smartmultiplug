@@ -224,7 +224,7 @@ export default function Dashboard() {
     return (
       <div className="page-wrap">
         <div className="bg-mesh" />
-        <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
+        <div className="container dash-container">
           {/* Header */}
           <div className="page-header">
             <div>
@@ -233,15 +233,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div style={{
-            background: 'var(--clr-surface)',
-            border: '1px solid var(--clr-border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '32px 24px',
-            textAlign: 'center',
-            marginTop: 40,
-          }}>
-            <span style={{ fontSize: 48, display: 'block', marginBottom: 16 }}>🔌</span>
+          <div className="dash-empty-card">
+            <span className="dash-empty-icon">🔌</span>
             <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>{t('dash_paired')}</h2>
             <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
               {t('dash_paired_desc')}
@@ -269,33 +262,27 @@ export default function Dashboard() {
     <div className="page-wrap">
       <div className="bg-mesh" />
 
-      <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
+      <div className="container dash-container">
         {/* Header */}
-        <div className="page-header">
+        <div className="dash-hero">
           <div>
-            <h1 className="page-title">{t('dash_title')}</h1>
-            <p className="page-subtitle">
+            <span className="dash-kicker">
+              {lang === 'bn' ? 'লাইভ কন্ট্রোল' : 'Live Control'}
+            </span>
+            <h1 className="page-title dash-title">{t('dash_title')}</h1>
+            <p className="page-subtitle dash-subtitle">
               {device?.name || 'Smart Multi-Plug'}
             </p>
           </div>
-          <OnlineIndicator online={online} />
+          <div className="dash-status-wrap">
+            <OnlineIndicator online={online} />
+          </div>
         </div>
 
         {/* MQTT connecting banner */}
         {!mqttOk && (
-          <div style={{
-            background: 'var(--clr-amber-dim)',
-            border: '1px solid rgba(251,191,36,0.25)',
-            borderRadius: 'var(--radius-md)',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginBottom: 20,
-            fontSize: 13,
-            color: 'var(--clr-amber)',
-          }}>
-            <span>⚡</span>
+          <div className="dash-alert dash-alert-warn">
+            <span className="dash-alert-icon">⚡</span>
             <span>
               {lang === 'bn' 
                 ? 'ডিভাইসের সাথে সংযোগ স্থাপন করা হচ্ছে… নিয়ন্ত্রণ ফিচারসমূহ কিছুক্ষণের মধ্যেই উপলব্ধ হবে।' 
@@ -306,23 +293,10 @@ export default function Dashboard() {
 
         {/* Device Offline Warning Banner */}
         {mqttOk && online === false && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
-            borderRadius: 'var(--radius-md)',
-            padding: '14px 18px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 12,
-            marginBottom: 20,
-            fontSize: 13,
-            lineHeight: 1.5,
-            color: '#f87171',
-            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.1)',
-          }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+          <div className="dash-alert dash-alert-offline">
+            <span className="dash-alert-icon">⚠️</span>
             <div>
-              <strong style={{ display: 'block', fontSize: 14, marginBottom: 2, color: '#f87171', fontWeight: 700 }}>
+              <strong>
                 {lang === 'bn' ? 'ডিভাইসটি অফলাইনে আছে' : 'Device is Offline'}
               </strong>
               <span>
@@ -352,7 +326,7 @@ export default function Dashboard() {
               bg: 'var(--clr-surface-2)',
             },
           ].map(({ label, value, icon, color, bg }) => (
-            <div key={label} className="stat-card" style={{ background: bg }}>
+            <div key={label} className="stat-card dash-stat-card" style={{ '--stat-bg': bg, '--stat-color': color }}>
               <span className="stat-icon" style={{ color }}>{icon}</span>
               <div>
                 <p className="stat-value" style={{ color }}>{value}</p>
@@ -363,7 +337,7 @@ export default function Dashboard() {
         </div>
 
         {/* Plug grid */}
-        <div className="section-header">
+        <div className="section-header dash-section-header">
           <span className="section-title">
             {lang === 'bn' ? 'আউটলেটসমূহ' : 'Outlets'}
           </span>
@@ -398,20 +372,11 @@ export default function Dashboard() {
         </div>
 
         {/* Device info footer */}
-        <div style={{
-          marginTop: 28,
-          padding: '16px',
-          background: 'var(--clr-surface)',
-          border: '1px solid var(--clr-border)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <span style={{ fontSize: 20 }}>ℹ️</span>
+        <div className="dash-device-footer">
+          <span className="dash-device-footer-icon">ℹ️</span>
           <div>
-            <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', lineHeight: 1.5 }}>
-              {lang === 'bn' ? 'ডিভাইস আইডি:' : 'Device ID:'} <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--clr-text-subtle)' }}>{deviceId}</span>
+            <p>
+              {lang === 'bn' ? 'ডিভাইস আইডি:' : 'Device ID:'} <span>{deviceId}</span>
             </p>
           </div>
         </div>

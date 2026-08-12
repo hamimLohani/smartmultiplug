@@ -344,33 +344,29 @@ export default function Settings() {
     <div className="page-wrap">
       <div className="bg-mesh" />
 
-      <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 24 }}>{t('settings_title')}</h1>
+      <div className="container settings-container">
+        <div className="settings-hero">
+          <div>
+            <span className="settings-kicker">
+              {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
+            </span>
+            <h1 className="settings-title">{t('settings_title')}</h1>
+          </div>
+          <span className={`badge ${mqttOk ? 'badge-green' : 'badge-amber'}`}>
+            {mqttOk ? (lang === 'bn' ? 'অনলাইন' : 'Online') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
+          </span>
+        </div>
 
         {/* Account info card */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(79,142,247,0.12), rgba(124,90,244,0.08))',
-          border: '1px solid rgba(79,142,247,0.2)',
-          borderRadius: 'var(--radius-xl)',
-          padding: '20px',
-          marginBottom: 28,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-        }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--clr-accent), #7c5af4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, fontWeight: 700, color: '#fff', flexShrink: 0,
-          }}>
+        <div className="settings-account-card">
+          <div className="settings-avatar">
             {(user?.displayName || user?.email || '?').charAt(0).toUpperCase()}
           </div>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div className="settings-account-text">
+            <p className="settings-account-name">
               {user?.displayName || (lang === 'bn' ? 'আমার অ্যাকাউন্ট' : 'My Account')}
             </p>
-            <p style={{ fontSize: 13, color: 'var(--clr-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p className="settings-account-email">
               {user?.email}
             </p>
           </div>
@@ -378,7 +374,7 @@ export default function Settings() {
 
         {/* App Language */}
         <p className="settings-section-title">{lang === 'bn' ? 'অ্যাপের ভাষা' : 'App Language'}</p>
-        <div className="settings-group" style={{ marginBottom: 28 }}>
+        <div className="settings-group settings-group-modern">
           <div className="settings-item" style={{ cursor: 'default' }}>
             <div className="settings-item-left">
               <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)', fontSize: 16 }}>🌐</div>
@@ -405,44 +401,41 @@ export default function Settings() {
 
         {/* Appearance / Theme */}
         <p className="settings-section-title">{lang === 'bn' ? 'থিম ও রূপরেখা' : 'Appearance / Theme'}</p>
-        <div className="settings-group" style={{ marginBottom: 28 }}>
-          <div className="settings-item" style={{ cursor: 'default', flexDirection: 'column', alignItems: 'stretch', gap: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="settings-group settings-group-modern">
+          <div className="settings-item settings-item-stack" style={{ cursor: 'default' }}>
+            <div className="settings-stack-head">
               <div className="settings-item-left">
                 <div className="settings-item-icon" style={{ background: 'var(--clr-accent-dim)', fontSize: 16 }}>🎨</div>
                 <span className="settings-item-label">
                   {lang === 'bn' ? 'থিম নির্বাচন করুন' : 'Theme Preference'}
                 </span>
               </div>
-              <span style={{ fontSize: 12, color: 'var(--clr-text-muted)', fontWeight: 600 }}>
+              <span className="settings-current-value">
                 {theme === 'system' 
                   ? (lang === 'bn' ? 'সিস্টেম ডিফল্ট' : 'System Default')
                   : (theme === 'dark' ? (lang === 'bn' ? 'ডার্ক মোড' : 'Dark Mode') : (lang === 'bn' ? 'লাইট মোড' : 'Light Mode'))}
               </span>
             </div>
 
-            <div className="chip-group" style={{ width: '100%', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            <div className="settings-theme-grid">
               <button
                 type="button"
-                className={`chip ${theme === 'system' ? 'active' : ''}`}
+                className={`chip settings-theme-chip ${theme === 'system' ? 'active' : ''}`}
                 onClick={() => setTheme('system')}
-                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
               >
                 💻 {lang === 'bn' ? 'সিস্টেম' : 'System'}
               </button>
               <button
                 type="button"
-                className={`chip ${theme === 'dark' ? 'active' : ''}`}
+                className={`chip settings-theme-chip ${theme === 'dark' ? 'active' : ''}`}
                 onClick={() => setTheme('dark')}
-                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
               >
                 🌙 {lang === 'bn' ? 'ডার্ক' : 'Dark'}
               </button>
               <button
                 type="button"
-                className={`chip ${theme === 'light' ? 'active' : ''}`}
+                className={`chip settings-theme-chip ${theme === 'light' ? 'active' : ''}`}
                 onClick={() => setTheme('light')}
-                style={{ justifyContent: 'center', textAlign: 'center', padding: '10px 8px' }}
               >
                 ☀️ {lang === 'bn' ? 'লাইট' : 'Light'}
               </button>
@@ -452,7 +445,7 @@ export default function Settings() {
 
         {/* PWA App Installation Card */}
         <p className="settings-section-title">{t('pwa_settings_card_title')}</p>
-        <div className="settings-group">
+        <div className="settings-group settings-group-modern">
           <div
             id="settings-pwa-install"
             className="settings-item"
@@ -485,7 +478,7 @@ export default function Settings() {
         {deviceId && (
           <>
             <p className="settings-section-title">{t('settings_rename_header')}</p>
-            <div className="settings-group">
+            <div className="settings-group settings-group-modern">
               {Array.from({ length: numPlugs }, (_, i) => i + 1).map((n) => (
                 <div key={n} className="settings-item" style={{ cursor: 'default' }}>
                   {renamingPlug === n ? (
@@ -531,7 +524,7 @@ export default function Settings() {
         {isEmailUser && (
           <>
             <p className="settings-section-title">{t('settings_account')}</p>
-            <div className="settings-group">
+            <div className="settings-group settings-group-modern">
               <div
                 id="settings-change-password"
                 className="settings-item"
@@ -550,7 +543,7 @@ export default function Settings() {
         {/* Device */}
         <p className="settings-section-title">{lang === 'bn' ? 'ডিভাইস' : 'Device'}</p>
         {deviceId ? (
-          <div className="settings-group">
+          <div className="settings-group settings-group-modern">
             <div className="settings-item" style={{ cursor: 'default' }}>
               <div className="settings-item-left">
                 <div className="settings-item-icon" style={{ background: 'var(--clr-green-dim)' }}>🔌</div>
@@ -577,7 +570,7 @@ export default function Settings() {
             </div>
           </div>
         ) : (
-          <div className="settings-group">
+          <div className="settings-group settings-group-modern">
             <div
               id="settings-pair-device"
               className="settings-item"
@@ -596,7 +589,7 @@ export default function Settings() {
 
         {/* Help & Instructions */}
         <p className="settings-section-title">{t('settings_help_title')}</p>
-        <div className="settings-group" style={{ marginBottom: 28 }}>
+        <div className="settings-group settings-group-modern">
           {/* PDF Download */}
           <a
             id="settings-download-manual"
@@ -627,7 +620,7 @@ export default function Settings() {
 
         {/* Sign out */}
         <p className="settings-section-title">{lang === 'bn' ? 'অ্যাকাউন্ট অ্যাকশন' : 'Account Actions'}</p>
-        <div className="settings-group">
+        <div className="settings-group settings-group-modern">
           <div
             id="settings-logout"
             className="settings-item"
@@ -641,7 +634,7 @@ export default function Settings() {
           </div>
         </div>
 
-        <p style={{ fontSize: 12, color: 'var(--clr-text-subtle)', textAlign: 'center', marginTop: 32 }}>
+        <p className="settings-version">
           Smart Multi-Plug v1.0
         </p>
       </div>
