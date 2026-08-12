@@ -404,10 +404,12 @@ export default function Settings() {
               {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
             </span>
             <h1 className="page-title dash-title">{t('settings_title')}</h1>
-            <p className="page-subtitle dash-subtitle">{t('settings_subtitle')}</p>
+            <p className="page-subtitle dash-subtitle">
+              {deviceId ? t('settings_subtitle') : t('dash_paired')}
+            </p>
           </div>
           <div className="dash-status-wrap">
-            <OnlineIndicator online={deviceId ? online : mqttOk} />
+            <OnlineIndicator online={deviceId ? online : 'unpaired'} />
           </div>
         </div>
 

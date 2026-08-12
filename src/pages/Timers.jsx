@@ -420,12 +420,18 @@ export default function Timers() {
     return (
       <div className="page-wrap">
         <div className="bg-mesh" />
-        <div className="container" style={{ paddingTop: 24, paddingBottom: 120 }}>
+        <div className="container timers-container">
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+          <div className="dash-hero">
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{t('timers_title')}</h1>
-              <p style={{ fontSize: 13, color: 'var(--clr-text-muted)' }}>{t('dash_paired')}</p>
+              <span className="dash-kicker">
+                {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
+              </span>
+              <h1 className="page-title dash-title">{t('timers_title')}</h1>
+              <p className="page-subtitle dash-subtitle">{t('dash_paired')}</p>
+            </div>
+            <div className="dash-status-wrap">
+              <OnlineIndicator online="unpaired" />
             </div>
           </div>
 

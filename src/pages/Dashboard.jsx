@@ -226,10 +226,16 @@ export default function Dashboard() {
         <div className="bg-mesh" />
         <div className="container dash-container">
           {/* Header */}
-          <div className="page-header">
+          <div className="dash-hero">
             <div>
-              <h1 className="page-title">{t('dash_title')}</h1>
-              <p className="page-subtitle">{t('dash_paired')}</p>
+              <span className="dash-kicker">
+                {lang === 'bn' ? 'লাইভ কন্ট্রোল' : 'Live Control'}
+              </span>
+              <h1 className="page-title dash-title">{t('dash_title')}</h1>
+              <p className="page-subtitle dash-subtitle">{t('dash_paired')}</p>
+            </div>
+            <div className="dash-status-wrap">
+              <OnlineIndicator online="unpaired" />
             </div>
           </div>
 

@@ -15,6 +15,17 @@ export default function OnlineIndicator({ online }) {
     );
   }
 
+  if (online === 'unpaired') {
+    return (
+      <div className="online-indicator">
+        <div className="dot dot-red" />
+        <span style={{ color: 'var(--clr-red)' }}>
+          {t('unpaired')}
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="online-indicator">
       <div className={`dot ${online ? 'dot-green' : 'dot-red'}`} />

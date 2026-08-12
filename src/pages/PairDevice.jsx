@@ -27,7 +27,7 @@ async function pairDeviceDirectly(deviceId, uid) {
   });
 
   const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
-  
+
   // Extract number of plugs from the prefix
   const getNumPlugs = (id) => {
     if (id?.startsWith('SP2-')) return 2;
@@ -73,10 +73,10 @@ export default function PairDevice() {
   const { lang, t } = useLanguage();
   const navigate = useNavigate();
 
-  const [code, setCode]         = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [step, setStep]         = useState(1); // 1=enter code, 2=success
-  const [error, setError]       = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1=enter code, 2=success
+  const [error, setError] = useState('');
   const [pairedId, setPairedId] = useState('');
 
   const handleInput = (ev) => {
@@ -228,23 +228,23 @@ export default function PairDevice() {
 
         {/* Steps */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-          <Step 
-            n={1} 
-            label={lang === 'bn' ? 'আপনার স্মার্ট মাল্টি-প্লাগটি চালু করুন' : 'Power on your Smart Multi-Plug'} 
-            active={true} 
-            done={false} 
+          <Step
+            n={1}
+            label={lang === 'bn' ? 'আপনার স্মার্ট মাল্টি-প্লাগটি চালু করুন' : 'Power on your Smart Multi-Plug'}
+            active={true}
+            done={false}
           />
-          <Step 
-            n={2} 
-            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ডিভাইস আইডিটি (Device ID) দেখুন' : 'Find the Device ID on the screen or casing'} 
-            active={true} 
-            done={false} 
+          <Step
+            n={2}
+            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ডিভাইস আইডিটি (Device ID) দেখুন' : 'Find the Device ID on the screen or casing'}
+            active={true}
+            done={false}
           />
-          <Step 
-            n={3} 
-            label={lang === 'bn' ? 'নিচের বক্সে ডিভাইস আইডিটি লিখুন' : 'Enter the Device ID below'} 
-            active={true} 
-            done={false} 
+          <Step
+            n={3}
+            label={lang === 'bn' ? 'নিচের বক্সে ডিভাইস আইডিটি লিখুন' : 'Enter the Device ID below'}
+            active={true}
+            done={false}
           />
         </div>
 
@@ -255,7 +255,7 @@ export default function PairDevice() {
               id="pair-code"
               type="text"
               className={`form-input pair-code-input ${error ? 'error' : ''}`}
-              placeholder="SP-00000000"
+              placeholder="SPX-XXXXXXXX"
               value={code}
               onChange={handleInput}
               maxLength={12}
