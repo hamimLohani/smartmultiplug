@@ -100,8 +100,8 @@ export default function PairDevice() {
     if (!CODE_REGEX.test(codeToPair)) {
       setError(
         lang === 'bn'
-          ? 'অনুগ্রহ করে সঠিক ফরম্যাটে পেয়ারিং কোড দিন, যেমন SP-XXXXXXXX বা SP4-XXXXXXXX (এটি প্লাগের স্ক্রিনে দেখতে পাবেন)।'
-          : 'Enter a valid pairing code in the format SP-XXXXXXXX or SP4-XXXXXXXX (shown on your device screen).'
+          ? 'অনুগ্রহ করে সঠিক ফরম্যাটে ডিভাইস আইডি দিন, যেমন SPX-XXXXXXXX (এটি প্লাগের স্ক্রিনে দেখতে পাবেন)।'
+          : 'Enter a valid Device ID in the format SPX-XXXXXXXX (shown on your device screen or casing).'
       );
       return;
     }
@@ -222,8 +222,8 @@ export default function PairDevice() {
         </p>
         <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
           {lang === 'bn'
-            ? 'প্লাগের স্ক্রিনে অথবা স্টিকারে থাকা কোডটি সংগ্রহ করে নিচে টাইপ করুন।'
-            : 'Find the pairing code on your device\'s screen and enter it below.'}
+            ? 'প্লাগের স্ক্রিনে অথবা স্টিকারে থাকা ডিভাইস আইডিটি সংগ্রহ করে নিচে টাইপ করুন।'
+            : 'Find the Device ID on your device\'s screen or casing and enter it below.'}
         </p>
 
         {/* Steps */}
@@ -236,13 +236,13 @@ export default function PairDevice() {
           />
           <Step 
             n={2} 
-            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ৮ সংখ্যার কোডটি দেখুন' : 'Wait for the code to appear on screen'} 
+            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ডিভাইস আইডিটি (Device ID) দেখুন' : 'Find the Device ID on the screen or casing'} 
             active={true} 
             done={false} 
           />
           <Step 
             n={3} 
-            label={lang === 'bn' ? 'নিচের বক্সে কোডটি লিখুন' : 'Enter the code below'} 
+            label={lang === 'bn' ? 'নিচের বক্সে ডিভাইস আইডিটি লিখুন' : 'Enter the Device ID below'} 
             active={true} 
             done={false} 
           />
