@@ -459,16 +459,28 @@ export default function Timers() {
       <div className="bg-mesh" />
 
       <div className="container timers-container">
-        <div className="timers-hero">
-          <div>
-            <span className="timers-kicker">
-              {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
-            </span>
-            <h1 className="timers-hero-title">{t('timers_title')}</h1>
-            <p className="timers-hero-subtitle">{t('timers_subtitle')}</p>
+        <div className="app-layer-hero timers-layer-hero">
+          <div className="timers-hero">
+            <div>
+              <span className="timers-kicker">
+                {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
+              </span>
+              <h1 className="timers-hero-title">{t('timers_title')}</h1>
+              <p className="timers-hero-subtitle">{t('timers_subtitle')}</p>
+            </div>
+            <div className="timers-hero-orbit" aria-hidden="true">
+              <span className="timers-hero-glyph">{mode === 'delay' ? '⏱' : '📅'}</span>
+            </div>
           </div>
-          <div className="timers-hero-orbit" aria-hidden="true">
-            <span className="timers-hero-glyph">{mode === 'delay' ? '⏱' : '📅'}</span>
+          <div className={`app-layer-status ${online === false ? 'offline' : mqttOk ? 'online' : 'pending'}`}>
+            <span className="app-layer-status-dot" />
+            <span>
+              {online === false
+                ? (lang === 'bn' ? 'অফলাইন' : 'Offline')
+                : mqttOk
+                  ? (lang === 'bn' ? 'অনলাইন' : 'Online')
+                  : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
+            </span>
           </div>
         </div>
 

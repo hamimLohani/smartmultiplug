@@ -345,16 +345,24 @@ export default function Settings() {
       <div className="bg-mesh" />
 
       <div className="container settings-container">
-        <div className="settings-hero">
-          <div>
-            <span className="settings-kicker">
-              {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
+        <div className="app-layer-hero settings-layer-hero">
+          <div className="settings-hero">
+            <div>
+              <span className="settings-kicker">
+                {lang === 'bn' ? 'কন্ট্রোল সেন্টার' : 'Control Center'}
+              </span>
+              <h1 className="settings-title">{t('settings_title')}</h1>
+            </div>
+            <span className={`badge ${mqttOk ? 'badge-green' : 'badge-amber'}`}>
+              {mqttOk ? (lang === 'bn' ? 'অনলাইন' : 'Online') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
             </span>
-            <h1 className="settings-title">{t('settings_title')}</h1>
           </div>
-          <span className={`badge ${mqttOk ? 'badge-green' : 'badge-amber'}`}>
-            {mqttOk ? (lang === 'bn' ? 'অনলাইন' : 'Online') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
-          </span>
+          <div className={`app-layer-status ${mqttOk ? 'online' : 'pending'}`}>
+            <span className="app-layer-status-dot" />
+            <span>
+              {mqttOk ? (lang === 'bn' ? 'লাইভ কানেকশন' : 'Live connection') : (lang === 'bn' ? 'সংযোগ হচ্ছে' : 'Connecting')}
+            </span>
+          </div>
         </div>
 
         {/* Account info card */}
