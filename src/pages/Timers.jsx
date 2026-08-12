@@ -59,7 +59,7 @@ function WifiNotice({ connected, t }) {
 export default function Timers() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { devices, deviceId, plugLabels, numPlugs, selectDevice } = useDevice();
+  const { devices, device, deviceId, plugLabels, numPlugs, selectDevice } = useDevice();
   const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
@@ -111,8 +111,9 @@ export default function Timers() {
   const lastResponseTimeRef = useRef(null);
   const syncStartTimeRef = useRef(0);
 
-  const baseTopic = user && deviceId
-    ? `users/${user.uid}/devices/${deviceId}`
+  const ownerUid = device?.is_shared ? device.owner_uid : user?.uid;
+  const baseTopic = user && deviceId && ownerUid
+    ? `users/${ownerUid}/devices/${deviceId}`
     : null;
 
   // Subscribe to device status topic in Timers.jsx
@@ -185,8 +186,8 @@ export default function Timers() {
 
   // Load schedule entries from RTDB
   useEffect(() => {
-    if (!user || !deviceId) return;
-    const schedRef = ref(db, `users/${user.uid}/devices/${deviceId}/schedules`);
+    if (!user || !deviceId || !ownerUid) return;
+    const schedRef = ref(db, `users/${ownerUid}/devices/${deviceId}/schedules`);
     const handle = (snap) => {
       if (!snap.exists()) { setActiveTimers([]); return; }
       const data = snap.val();
@@ -195,7 +196,7 @@ export default function Timers() {
     };
     onValue(schedRef, handle);
     return () => off(schedRef, 'value', handle);
-  }, [user, deviceId]);
+  }, [user, deviceId, ownerUid]);
 
   // Clean up completed 'once' schedules from RTDB after the device executes
   // them and republishes a schedule list without the fired item.
@@ -223,7 +224,7 @@ export default function Timers() {
       try {
         await Promise.all(
           finishedOnceTimers.map((timer) =>
-            remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`))
+            remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`))
           )
         );
       } catch (err) {
@@ -232,7 +233,7 @@ export default function Timers() {
     };
 
     cleanupFinishedOnceSchedules();
-  }, [db, user, deviceId, activeTimers, mqttSchedules]);
+  }, [db, user, deviceId, ownerUid, activeTimers, mqttSchedules]);
 
   const getDelayMinutes = () => {
     if (delayPreset) return delayPreset;
@@ -309,7 +310,7 @@ export default function Timers() {
       };
 
       // Save to RTDB
-      const schedRef = ref(db, `users/${user.uid}/devices/${deviceId}/schedules`);
+      const schedRef = ref(db, `users/${ownerUid}/devices/${deviceId}/schedules`);
       const newRef = push(schedRef);
       await set(newRef, entry);
 
@@ -356,7 +357,7 @@ export default function Timers() {
       publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, updatedList, { retain: true });
       setMqttSchedules((prev) => ({ ...prev, [timer.plugNum]: updatedList }));
     } else {
-      await remove(ref(db, `users/${user.uid}/devices/${deviceId}/schedules/${timer.id}`));
+      await remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`));
 
       // Re-publish updated schedule list (retained)
       const remaining = activeTimers.filter(t => t.id !== timer.id && t.plugNum === timer.plugNum);

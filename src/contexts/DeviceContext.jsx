@@ -12,6 +12,7 @@ export function DeviceProvider({ children }) {
   const [activeDeviceId, setActiveDeviceId] = useState(() => {
     return localStorage.getItem('active_device_id') || null;
   });
+  const [activeDeviceConfig, setActiveDeviceConfig] = useState(null);
   const [plugLabels, setPlugLabels] = useState({
     1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4',
   });
@@ -64,33 +65,60 @@ export function DeviceProvider({ children }) {
     return () => off(devicesRef, 'value', handleValue);
   }, [user]);
 
+  // Listen to the active device config node (owner's path if shared)
+  useEffect(() => {
+    if (!isFirebaseConfigured || !db || !user || !activeDeviceId || !devices || devices.length === 0) {
+      setActiveDeviceConfig(null);
+      return;
+    }
+
+    const activeDevRef = devices.find(d => d.id === activeDeviceId);
+    if (!activeDevRef) return;
+
+    const ownerUid = activeDevRef.is_shared ? activeDevRef.owner_uid : user.uid;
+    const configRef = ref(db, `users/${ownerUid}/devices/${activeDeviceId}`);
+
+    const handleConfigValue = (snap) => {
+      if (snap.exists()) {
+        setActiveDeviceConfig(snap.val());
+      } else {
+        setActiveDeviceConfig(null);
+      }
+    };
+
+    onValue(configRef, handleConfigValue);
+    return () => off(configRef, 'value', handleConfigValue);
+  }, [user, activeDeviceId, devices]);
+
   // Load plug labels dynamically based on selected active device model and labels
   useEffect(() => {
-    if (!devices || devices.length === 0 || !activeDeviceId) {
+    if (!activeDeviceConfig) {
       setPlugLabels({ 1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4' });
       return;
     }
 
-    const activeDev = devices.find(d => d.id === activeDeviceId);
-    if (activeDev) {
-      const labels = {};
-      const count = getNumPlugsFromId(activeDeviceId);
-      for (let n = 1; n <= count; n++) {
-        labels[n] = activeDev.plugs?.[n]?.label ?? `Plug ${n}`;
-      }
-      setPlugLabels(labels);
+    const labels = {};
+    const count = getNumPlugsFromId(activeDeviceId);
+    for (let n = 1; n <= count; n++) {
+      labels[n] = activeDeviceConfig.plugs?.[n]?.label ?? `Plug ${n}`;
     }
-  }, [devices, activeDeviceId]);
+    setPlugLabels(labels);
+  }, [activeDeviceConfig, activeDeviceId]);
 
   // Listen for unpairing triggered from the ESP physical menu
   useEffect(() => {
-    if (!user || !activeDeviceId || !mqttOk) return;
+    if (!user || !activeDeviceId || !mqttOk || !devices || devices.length === 0) return;
 
     let unsubUserEvent = null;
     let unsubDeviceEvent = null;
 
+    const activeDevRef = devices.find(d => d.id === activeDeviceId);
+    if (!activeDevRef) return;
+
+    const ownerUid = activeDevRef.is_shared ? activeDevRef.owner_uid : user.uid;
+
     import('../mqtt').then(({ subscribe, publish }) => {
-      const userTopic = `users/${user.uid}/devices/${activeDeviceId}/unpair_event`;
+      const userTopic = `users/${ownerUid}/devices/${activeDeviceId}/unpair_event`;
       const deviceTopic = `devices/${activeDeviceId}/unpair_event`;
 
       const handleUnpairEvent = async (msg) => {
@@ -101,11 +129,17 @@ export function DeviceProvider({ children }) {
             const userDeviceRef = ref(db, `users/${user.uid}/devices/${activeDeviceId}`);
 
             // 1. Remove device pairing details in Firebase DB
-            await update(deviceRef, {
-              claimed_by: null,
-              claimed_at: null,
-            });
-            await remove(userDeviceRef);
+            if (activeDevRef.is_shared) {
+              await remove(ref(db, `devices/${activeDeviceId}/shared_members/${user.uid}`));
+              await remove(userDeviceRef);
+            } else {
+              await update(deviceRef, {
+                claimed_by: null,
+                claimed_at: null,
+              });
+              await remove(ref(db, `devices/${activeDeviceId}/shared_members`));
+              await remove(userDeviceRef);
+            }
 
             // 2. Clear retained unpair message
             publish(userTopic, '', { retain: true });
@@ -143,28 +177,38 @@ export function DeviceProvider({ children }) {
 
   // Periodically trigger sync on active device state load
   useEffect(() => {
-    if (user && activeDeviceId && mqttOk) {
+    if (user && activeDeviceId && mqttOk && devices && devices.length > 0) {
+      const activeDevRef = devices.find(d => d.id === activeDeviceId);
+      if (!activeDevRef) return;
+      const ownerUid = activeDevRef.is_shared ? activeDevRef.owner_uid : user.uid;
+
       import('../mqtt').then(({ publish }) => {
-        const topic = `users/${user.uid}/devices/${activeDeviceId}/sync`;
+        const topic = `users/${ownerUid}/devices/${activeDeviceId}/sync`;
         console.log(`[DeviceContext] Publishing sync message to topic: ${topic}`);
         publish(topic, "sync", { retain: false, qos: 1 });
       });
     }
-  }, [user, activeDeviceId, mqttOk]);
+  }, [user, activeDeviceId, mqttOk, devices]);
 
   const updatePlugLabel = async (plugNum, label) => {
-    if (!isFirebaseConfigured || !user || !activeDeviceId) return;
+    if (!isFirebaseConfigured || !user || !activeDeviceId || !devices || devices.length === 0) return;
+    const activeDevRef = devices.find(d => d.id === activeDeviceId);
+    const ownerUid = activeDevRef?.is_shared ? activeDevRef.owner_uid : user.uid;
+
     await update(
-      ref(db, `users/${user.uid}/devices/${activeDeviceId}/plugs/${plugNum}`),
+      ref(db, `users/${ownerUid}/devices/${activeDeviceId}/plugs/${plugNum}`),
       { label }
     );
     setPlugLabels((prev) => ({ ...prev, [plugNum]: label }));
   };
 
   const updateDeviceName = async (name) => {
-    if (!isFirebaseConfigured || !user || !activeDeviceId) return;
+    if (!isFirebaseConfigured || !user || !activeDeviceId || !devices || devices.length === 0) return;
+    const activeDevRef = devices.find(d => d.id === activeDeviceId);
+    const ownerUid = activeDevRef?.is_shared ? activeDevRef.owner_uid : user.uid;
+
     await update(
-      ref(db, `users/${user.uid}/devices/${activeDeviceId}`),
+      ref(db, `users/${ownerUid}/devices/${activeDeviceId}`),
       { name }
     );
   };
@@ -183,7 +227,7 @@ export function DeviceProvider({ children }) {
 
   const value = {
     devices: devices || [],
-    device,
+    device: activeDeviceConfig || device, // use config node details first
     deviceId: activeDeviceId,
     plugLabels,
     updatePlugLabel,

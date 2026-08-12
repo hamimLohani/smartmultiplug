@@ -3,13 +3,19 @@
     "devices": {
       "$deviceId": {
         ".read": "auth != null",
-        ".write": "(!data.exists() && newData.exists()) || (auth != null && (!data.exists() || !data.child('claimed_by').exists() || data.child('claimed_by').val() === auth.uid))"
+        ".write": "auth != null"
       }
     },
     "users": {
       "$uid": {
-        ".read":  "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "devices": {
+          "$deviceId": {
+            ".read": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)",
+            ".write": "auth != null && (auth.uid === $uid || root.child('devices').child($deviceId).child('shared_members').child(auth.uid).val() === true)"
+          }
+        }
       }
     }
   }

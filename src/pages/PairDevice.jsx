@@ -17,8 +17,22 @@ async function pairDeviceDirectly(deviceId, uid) {
   }
 
   const deviceData = snap.val();
-  if (deviceData.claimed_by && deviceData.claimed_by !== uid) {
-    throw new Error('already-claimed');
+  const ownerUid = deviceData.claimed_by;
+  if (ownerUid && ownerUid !== uid) {
+    // Add guest user UID to shared_members index on device metadata
+    await update(ref(db, `devices/${deviceId}/shared_members`), {
+      [uid]: true
+    });
+
+    // Add device link reference to guest user's devices list
+    const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
+    await update(userDeviceRef, {
+      name: deviceData.name || 'Smart Multi-Plug',
+      is_shared: true,
+      owner_uid: ownerUid,
+      paired_at: Date.now(),
+    });
+    return;
   }
 
   await update(deviceRef, {

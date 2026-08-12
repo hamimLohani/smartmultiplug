@@ -46,14 +46,21 @@ function Modal({ show, title, body, onConfirm, onCancel, confirmLabel, cancelLab
   );
 }
 
-async function unpairDeviceDirectly(deviceId, uid) {
-  const deviceRef = ref(db, `devices/${deviceId}`);
+async function unpairDeviceDirectly(deviceId, uid, isShared) {
   const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
 
+  if (isShared) {
+    await remove(ref(db, `devices/${deviceId}/shared_members/${uid}`));
+    await remove(userDeviceRef);
+    return;
+  }
+
+  const deviceRef = ref(db, `devices/${deviceId}`);
   await update(deviceRef, {
     claimed_by: null,
     claimed_at: null,
   });
+  await remove(ref(db, `devices/${deviceId}/shared_members`));
   await remove(userDeviceRef);
 }
 
@@ -274,7 +281,8 @@ export default function Settings() {
   const lastResponseTimeRef = useRef(null);
   const syncStartTimeRef = useRef(0);
 
-  const baseTopic = user && deviceId ? `users/${user.uid}/devices/${deviceId}` : null;
+  const ownerUid = device?.is_shared ? device.owner_uid : user?.uid;
+  const baseTopic = user && deviceId && ownerUid ? `users/${ownerUid}/devices/${deviceId}` : null;
 
   const handleIncomingMessage = useCallback((msg, topic) => {
     const now = Date.now();
@@ -369,7 +377,7 @@ export default function Settings() {
     try {
       // Notify the device over MQTT first
       const { publishAsync } = await import('../mqtt');
-      await publishAsync(`users/${user.uid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
+      await publishAsync(`users/${ownerUid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
 
       if (functions) {
         try {
@@ -377,13 +385,13 @@ export default function Settings() {
           await unclaimDevice({ deviceId });
         } catch (err) {
           if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
-            await unpairDeviceDirectly(deviceId, user.uid);
+            await unpairDeviceDirectly(deviceId, user.uid, device?.is_shared);
           } else {
             throw err;
           }
         }
       } else {
-        await unpairDeviceDirectly(deviceId, user.uid);
+        await unpairDeviceDirectly(deviceId, user.uid, device?.is_shared);
       }
 
       const remainingCount = (devices || []).length - 1;

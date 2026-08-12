@@ -30,8 +30,9 @@ export default function Dashboard() {
   const lastResponseTimeRef = useRef(null);
   const syncStartTimeRef = useRef(0);
 
-  const baseTopic = user && deviceId
-    ? `users/${user.uid}/devices/${deviceId}`
+  const ownerUid = device?.is_shared ? device.owner_uid : user?.uid;
+  const baseTopic = user && deviceId && ownerUid
+    ? `users/${ownerUid}/devices/${deviceId}`
     : null;
 
   // Helper to record received MQTT messages from ESP
