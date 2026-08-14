@@ -344,7 +344,7 @@ export default function Settings() {
   const [showLogout, setShowLogout]     = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
   const [showPwaModal, setShowPwaModal] = useState(false);
-  const { isStandalone } = usePwaInstall();
+  const { isStandalone, canPromptNative, promptInstall } = usePwaInstall();
   const [unpairing, setUnpairing]       = useState(false);
 
   // Inline plug rename state
@@ -668,9 +668,11 @@ export default function Settings() {
             id="settings-pwa-install"
             className="settings-item"
             style={{ cursor: 'pointer' }}
-            onClick={() => {
+            onClick={async () => {
               if (isStandalone) {
                 toast.success(t('pwa_installed_badge'));
+              } else if (canPromptNative) {
+                await promptInstall();
               } else {
                 setShowPwaModal(true);
               }
