@@ -14,6 +14,7 @@ import PwaInstallRecommendation from '../components/PwaInstallRecommendation';
 import { useMqttSubscribe } from '../hooks/useMqtt';
 import OnlineIndicator from '../components/OnlineIndicator';
 import { useDelayUnmount } from '../hooks/useDelayUnmount';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 function ChevronRight() {
   return (
@@ -282,7 +283,7 @@ function HelpInstructions({ lang, t }) {
 
 export default function Settings() {
   const { user, logout, mqttOk }   = useAuth();
-  const { devices, device, deviceId, plugLabels, updatePlugLabel, updateDeviceName, selectDevice, clearDevice, numPlugs } = useDevice();
+  const { devices, device, deviceId, plugLabels, updatePlugLabel, updateDeviceName, selectDevice, clearDevice, numPlugs, loading } = useDevice();
   const { lang, setLang, t }       = useLanguage();
   const { theme, setTheme }        = useTheme();
   const navigate                   = useNavigate();
@@ -539,6 +540,8 @@ export default function Settings() {
   };
 
   const isEmailUser = user?.providerData?.[0]?.providerId === 'password';
+
+  if (loading) return <SkeletonLoader />;
 
   return (
     <div className="page-wrap">

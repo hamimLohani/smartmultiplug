@@ -112,6 +112,7 @@ export default function Dashboard() {
           }
         } catch { /* ignore */ }
       },
+      [lang]
     );
 
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -137,6 +138,7 @@ export default function Dashboard() {
           }
         } catch { /* ignore */ }
       },
+      [lang]
     );
   }
 

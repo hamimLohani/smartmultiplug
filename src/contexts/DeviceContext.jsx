@@ -12,7 +12,7 @@ export function DeviceProvider({ children }) {
   const [activeDeviceId, setActiveDeviceId] = useState(() => {
     return localStorage.getItem('active_device_id') || null;
   });
-  const [activeDeviceConfig, setActiveDeviceConfig] = useState(null);
+  const [activeDeviceConfig, setActiveDeviceConfig] = useState(undefined); // undefined = loading
   const [plugLabels, setPlugLabels] = useState({
     1: 'Plug 1', 2: 'Plug 2', 3: 'Plug 3', 4: 'Plug 4',
   });
@@ -27,12 +27,25 @@ export function DeviceProvider({ children }) {
 
   // Listen for the user's paired devices in Firebase DB
   useEffect(() => {
-    if (!isFirebaseConfigured || !db || !user) {
+    if (!isFirebaseConfigured || !db) {
       setDevices([]);
       setActiveDeviceId(null);
       localStorage.removeItem('active_device_id');
       return;
     }
+
+    if (user === undefined) {
+      return;
+    }
+
+    if (user === null) {
+      setDevices([]);
+      setActiveDeviceId(null);
+      localStorage.removeItem('active_device_id');
+      return;
+    }
+
+    setDevices(undefined); // Reset loading state
 
     const devicesRef = ref(db, `users/${user.uid}/devices`);
     const handleValue = (snap) => {
@@ -67,7 +80,17 @@ export function DeviceProvider({ children }) {
 
   // Listen to the active device config node (owner's path if shared)
   useEffect(() => {
-    if (!isFirebaseConfigured || !db || !user || !activeDeviceId || !devices || devices.length === 0) {
+    if (!isFirebaseConfigured || !db || user === null) {
+      setActiveDeviceConfig(null);
+      return;
+    }
+
+    if (user === undefined || devices === undefined) {
+      setActiveDeviceConfig(undefined);
+      return;
+    }
+
+    if (!activeDeviceId || devices.length === 0) {
       setActiveDeviceConfig(null);
       return;
     }
@@ -235,7 +258,7 @@ export function DeviceProvider({ children }) {
     clearDevice,
     selectDevice,
     numPlugs,
-    loading: devices === undefined,
+    loading: devices === undefined || (devices.length > 0 && !!activeDeviceId && activeDeviceConfig === undefined),
     hasPairedDevice: devices !== null && devices !== undefined && devices.length > 0,
   };
 

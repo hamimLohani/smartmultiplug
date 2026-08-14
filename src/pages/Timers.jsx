@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import ActiveTimersList from '../components/ActiveTimersList';
 import toast from 'react-hot-toast';
 import OnlineIndicator from '../components/OnlineIndicator';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const DELAY_PRESETS = [
   { label: '1 min', value: 1 },
@@ -56,10 +57,28 @@ function WifiNotice({ connected, t }) {
 }
 
 
+function LiveClock({ lang }) {
+  const [liveTime, setLiveTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return liveTime.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+}
+
 export default function Timers() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { devices, device, deviceId, plugLabels, numPlugs, selectDevice } = useDevice();
+  const { devices, device, deviceId, plugLabels, numPlugs, selectDevice, loading } = useDevice();
   const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
@@ -76,25 +95,7 @@ export default function Timers() {
   const [repeat, setRepeat] = useState('once');     // 'once' | 'daily' | 'custom'
   const [customDays, setCustomDays] = useState([]);
 
-  // Live system clock logic
-  const [liveTime, setLiveTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatLiveTime = () => {
-    return liveTime.toLocaleTimeString(lang === 'bn' ? 'bn-BD' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true,
-    });
-  };
-
+  // Set schedule to current time
   const setSchedTimeToNow = () => {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
@@ -417,6 +418,8 @@ export default function Timers() {
     );
   };
 
+  if (loading) return <SkeletonLoader />;
+
   if (!deviceId) {
     return (
       <div className="page-wrap">
@@ -617,7 +620,7 @@ export default function Timers() {
                   
                   <div className="live-clock-badge">
                     <span className="live-clock-dot"></span>
-                    <span className="live-clock-text">{formatLiveTime()}</span>
+                    <span className="live-clock-text"><LiveClock lang={lang} /></span>
                     <button
                       type="button"
                       className="live-clock-use-btn"
