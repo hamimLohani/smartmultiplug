@@ -172,6 +172,7 @@ a {
     radial-gradient(circle 60% at 50% 120%, rgba(88, 166, 255, 0.2) 0%, transparent 50%);
   pointer-events: none;
   animation: meshRotate 25s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* ── Layout helpers ── */
@@ -2525,6 +2526,14 @@ a {
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-lg), var(--shadow-inner);
+  transform: translateZ(0);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .settings-group {
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  }
 }
 
 .settings-group-modern {
