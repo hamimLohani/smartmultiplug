@@ -199,8 +199,8 @@ export default function Timers() {
     return () => off(schedRef, 'value', handle);
   }, [user, deviceId, ownerUid]);
 
-  // Clean up completed 'once' schedules from RTDB after the device executes
-  // them and republishes a schedule list without the fired item.
+  // Temporarily disabled to debug schedule deletion issue
+  /*
   useEffect(() => {
     if (!db || !user || !deviceId) return;
 
@@ -235,6 +235,7 @@ export default function Timers() {
 
     cleanupFinishedOnceSchedules();
   }, [db, user, deviceId, ownerUid, activeTimers, mqttSchedules]);
+  */
 
   const getDelayMinutes = () => {
     if (delayPreset) return delayPreset;
