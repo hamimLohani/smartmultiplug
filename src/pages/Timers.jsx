@@ -315,13 +315,22 @@ export default function Timers() {
       const newRef = push(schedRef);
       await set(newRef, entry);
 
-      // Publish to MQTT (retained, so device picks it up on reconnect)
+      // Publish to MQTT (retained, so device picks it up on reconnect). 
+      // Important: Map to minimal payload to avoid exceeding ESP8266 512 byte buffer.
       const schedulesForPlug = activeTimers
         .filter(t => t.plugNum === selectedPlug && t.type === 'schedule')
         .concat({ id: newRef.key, ...entry });
+        
+      const payloadToEsp = schedulesForPlug.map(s => ({
+        time: s.time,
+        action: s.action,
+        repeat: s.repeat === 'custom' ? 'daily' : s.repeat, // Fallback since ESP lacks DOW support
+        enabled: s.enabled
+      }));
+      
       publish(
         `${baseTopic}/plug/${selectedPlug}/schedule`,
-        schedulesForPlug,
+        payloadToEsp,
         { retain: true },
       );
 
@@ -360,9 +369,15 @@ export default function Timers() {
     } else {
       await remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`));
 
-      // Re-publish updated schedule list (retained)
+      // Re-publish updated schedule list (retained) with minimized payload
       const remaining = activeTimers.filter(t => t.id !== timer.id && t.plugNum === timer.plugNum);
-      publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, remaining, { retain: true });
+      const payloadToEsp = remaining.map(s => ({
+        time: s.time,
+        action: s.action,
+        repeat: s.repeat === 'custom' ? 'daily' : s.repeat,
+        enabled: s.enabled
+      }));
+      publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, payloadToEsp, { retain: true });
     }
     toast.success(lang === 'bn' ? 'টাইমারটি মুছে ফেলা হয়েছে।' : 'Timer removed.');
   };
@@ -663,20 +678,17 @@ export default function Timers() {
                 </div>
 
                 {repeat === 'custom' && (
-                  <div className="week-days-row" style={{ marginTop: 12 }}>
-                    {DAYS_SHORT.map((day, i) => (
-                      <button
-                        key={day}
-                        id={`day-${DAYS_KEYS[i]}`}
-                        className={`day-circle-btn ${customDays.includes(DAYS_KEYS[i]) ? 'active' : ''}`}
-                        onClick={() => toggleDay(DAYS_KEYS[i])}
-                        type="button"
-                        title={lang === 'bn' ? DAYS_SHORT_BN[i] : day}
-                        disabled={!mqttOk}
-                      >
-                        {lang === 'bn' ? DAYS_SHORT_BN[i].charAt(0) : day.charAt(0)}
-                      </button>
-                    ))}
+                  <div className="inline-notice inline-notice--warn" style={{ marginTop: 12 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                    <span>
+                      {lang === 'bn' 
+                        ? 'এই ফিচারটি বর্তমানে তৈরির কাজ চলছে (Under Construction)। আপাতত প্রতিদিন বা একবার অপশনটি ব্যবহার করুন।' 
+                        : 'This feature is under construction. Please use Everyday or Once for now.'}
+                    </span>
                   </div>
                 )}
               </div>
@@ -715,7 +727,7 @@ export default function Timers() {
             id="timer-add-btn"
             className="btn btn-primary btn-full timer-add-btn"
             onClick={handleAddTimer}
-            disabled={!baseTopic || (mode === 'schedule' && !mqttOk)}
+            disabled={!baseTopic || (mode === 'schedule' && (!mqttOk || repeat === 'custom'))}
           >
             {t('timers_add_btn')}
           </button>
