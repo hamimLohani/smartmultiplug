@@ -168,7 +168,30 @@ export default function App() {
       <ThemeProvider>
         <LanguageProvider>
           <SetupGuide />
-          <Toaster position="top-center" />
+          <Toaster 
+            position="top-center" 
+            toastOptions={{
+              duration: 3500,
+              style: {
+                background: 'var(--clr-surface-2)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                color:       'var(--clr-text)',
+                border:      '1px solid var(--clr-border-md)',
+                borderRadius:'var(--radius-md)',
+                fontFamily:  'var(--font)',
+                fontSize:    '14px',
+                boxShadow:   'var(--shadow-md)',
+                padding:     '12px 16px',
+              },
+              success: {
+                iconTheme: { primary: 'var(--clr-green)', secondary: 'transparent' },
+              },
+              error: {
+                iconTheme: { primary: 'var(--clr-red)', secondary: 'transparent' },
+              },
+            }}
+          />
         </LanguageProvider>
       </ThemeProvider>
     );
@@ -187,6 +210,8 @@ export default function App() {
                 duration: 3500,
                 style: {
                   background: 'var(--clr-surface-2)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
                   color:       'var(--clr-text)',
                   border:      '1px solid var(--clr-border-md)',
                   borderRadius:'var(--radius-md)',
