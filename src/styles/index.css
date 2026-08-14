@@ -2521,19 +2521,19 @@ a {
 }
 
 .settings-group {
-  background: var(--clr-surface);
-  border: 1px solid var(--clr-border);
+  background: var(--clr-card-bg);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border: 1px solid var(--clr-border-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-left: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-lg), var(--shadow-inner);
 }
 
 .settings-group-modern {
   margin-bottom: 28px;
-  border-color: var(--clr-border-md);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.010)),
-    var(--clr-surface);
-  box-shadow: var(--shadow-md);
 }
 
 .settings-item {
@@ -2756,6 +2756,17 @@ a {
   }
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -2763,6 +2774,15 @@ a {
 
   to {
     opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 
@@ -2781,8 +2801,16 @@ a {
   animation: slideUp 0.35s var(--transition) both;
 }
 
+.animate-slide-down {
+  animation: slideDown 0.25s var(--transition) both;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease both;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.2s ease both;
 }
 
 .page-enter {

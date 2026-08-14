@@ -13,6 +13,7 @@ import { usePwaInstall } from '../hooks/usePwaInstall';
 import PwaInstallRecommendation from '../components/PwaInstallRecommendation';
 import { useMqttSubscribe } from '../hooks/useMqtt';
 import OnlineIndicator from '../components/OnlineIndicator';
+import { useDelayUnmount } from '../hooks/useDelayUnmount';
 
 function ChevronRight() {
   return (
@@ -23,10 +24,15 @@ function ChevronRight() {
 }
 
 function Modal({ show, title, body, onConfirm, onCancel, confirmLabel, cancelLabel, danger = false }) {
-  if (!show) return null;
+  const shouldRender = useDelayUnmount(show, 250); // 250ms matches the animation duration
+
+  if (!shouldRender) return null;
+  
+  const isClosing = !show;
+
   return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-overlay ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={onCancel}>
+      <div className={`modal-card ${isClosing ? 'animate-slide-down' : 'animate-slide-up'}`} onClick={(e) => e.stopPropagation()}>
         <p className="modal-title">{title}</p>
         <p className="modal-body">{body}</p>
         <div className="modal-actions">
@@ -70,7 +76,11 @@ function ChangePasswordModal({ show, onClose, lang, t }) {
   const [confirm, setConfirm]   = useState('');
   const [loading, setLoading]   = useState(false);
 
-  if (!show) return null;
+  const shouldRender = useDelayUnmount(show, 250);
+
+  if (!shouldRender) return null;
+  
+  const isClosing = !show;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,8 +125,8 @@ function ChangePasswordModal({ show, onClose, lang, t }) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+    <div className={`modal-overlay ${isClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={onClose}>
+      <div className={`modal-card ${isClosing ? 'animate-slide-down' : 'animate-slide-up'}`} onClick={(e) => e.stopPropagation()}>
         <p className="modal-title">{t('settings_change_pw')}</p>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 4 }}>
           <div className="form-group">

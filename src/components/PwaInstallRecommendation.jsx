@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePwaInstall } from '../hooks/usePwaInstall';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useDelayUnmount } from '../hooks/useDelayUnmount';
 import toast from 'react-hot-toast';
 
 export default function PwaInstallRecommendation({ forceShow = false, onCloseModal = null }) {
@@ -33,12 +34,19 @@ export default function PwaInstallRecommendation({ forceShow = false, onCloseMod
     if (onCloseModal) onCloseModal();
   };
 
+  const showPopup = (!isDismissed || forceShow) && !showGuideModal;
+  const shouldRenderPopup = useDelayUnmount(showPopup, 250);
+  const popupClosing = !showPopup;
+
+  const shouldRenderGuide = useDelayUnmount(showGuideModal, 250);
+  const guideClosing = !showGuideModal;
+
   return (
     <>
       {/* ── Visit Recommendation Center Popup Modal ── */}
-      {(!isDismissed || forceShow) && !showGuideModal && (
-        <div className="modal-overlay pwa-popup-overlay" onClick={handleDismiss}>
-          <div className="modal-card pwa-popup-card" onClick={(e) => e.stopPropagation()}>
+      {shouldRenderPopup && (
+        <div className={`modal-overlay pwa-popup-overlay ${popupClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={handleDismiss}>
+          <div className={`modal-card pwa-popup-card ${popupClosing ? 'animate-slide-down' : 'animate-slide-up'}`} onClick={(e) => e.stopPropagation()}>
             <button className="pwa-banner-close" onClick={handleDismiss} title={t('pwa_install_later')} aria-label="Close">
               &times;
             </button>
@@ -95,10 +103,10 @@ export default function PwaInstallRecommendation({ forceShow = false, onCloseMod
         </div>
       )}
 
-      {/* ── Manual / iOS Installation Guide Modal ── */}
-      {showGuideModal && (
-        <div className="modal-overlay" onClick={() => setShowGuideModal(false)}>
-          <div className="modal-card pwa-guide-modal" onClick={(e) => e.stopPropagation()}>
+      {/* ── Manual Installation Guide Modal ── */}
+      {shouldRenderGuide && (
+        <div className={`modal-overlay ${guideClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={() => setShowGuideModal(false)}>
+          <div className={`modal-card pwa-guide-modal ${guideClosing ? 'animate-slide-down' : 'animate-slide-up'}`} onClick={(e) => e.stopPropagation()}>
             <div className="pwa-guide-header">
               <div className="pwa-guide-icon">📲</div>
               <div>
