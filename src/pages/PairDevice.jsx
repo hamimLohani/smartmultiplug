@@ -9,53 +9,6 @@ import toast from 'react-hot-toast';
 
 const CODE_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
 
-async function pairDeviceDirectly(deviceId, user) {
-  const uid = user.uid;
-  const deviceRef = ref(db, `devices/${deviceId}`);
-  const snap = await get(deviceRef);
-  if (!snap.exists()) {
-    throw new Error('not-found');
-  }
-
-  const deviceData = snap.val();
-  const ownerUid = deviceData.claimed_by;
-  if (ownerUid && ownerUid !== uid) {
-    // Write guest details to devices pairing requests path
-    const reqRef = ref(db, `devices/${deviceId}/pairing_requests/${uid}`);
-    await update(reqRef, {
-      email: user.email || 'guest@email.com',
-      name: user.displayName || user.email || 'Guest Member',
-      requested_at: Date.now(),
-      status: "pending"
-    });
-    throw new Error('awaiting-approval');
-  }
-
-  await update(deviceRef, {
-    claimed_by: uid,
-    claimed_at: Date.now(),
-  });
-
-  const userDeviceRef = ref(db, `users/${uid}/devices/${deviceId}`);
-
-  // Extract number of plugs from the prefix
-  const getNumPlugs = (id) => {
-    if (id?.startsWith('SP2-')) return 2;
-    if (id?.startsWith('SP3-')) return 3;
-    return 4; // default
-  };
-  const count = getNumPlugs(deviceId);
-  const plugsData = {};
-  for (let i = 1; i <= count; i++) {
-    plugsData[`plugs/${i}/label`] = `Plug ${i}`;
-  }
-
-  await update(userDeviceRef, {
-    name: 'Smart Multi-Plug',
-    paired_at: Date.now(),
-    ...plugsData,
-  });
-}
 
 function Step({ n, label, active, done }) {
   return (
@@ -178,19 +131,29 @@ export default function PairDevice() {
       }
       codeToPair = resolvedId;
 
-      if (functions) {
-        try {
-          const claimDevice = httpsCallable(functions, 'claimDevice');
-          await claimDevice({ deviceId: codeToPair });
-        } catch (err) {
-          if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
-            await pairDeviceDirectly(codeToPair, user);
-          } else {
-            throw err;
-          }
+      if (!functions) {
+        throw new Error('Firebase functions are not initialized.');
+      }
+      
+      const claimDevice = httpsCallable(functions, 'claimDevice');
+      try {
+        await claimDevice({ deviceId: codeToPair });
+      } catch (err) {
+        if (err.code === 'already-exists' || err.message.includes('already paired')) {
+          // Write guest details to devices pairing requests path
+          const reqRef = ref(db, `devices/${codeToPair}/pairing_requests/${user.uid}`);
+          await update(reqRef, {
+            email: user.email || 'guest@email.com',
+            name: user.displayName || user.email || 'Guest Member',
+            requested_at: Date.now(),
+            status: "pending"
+          });
+          setPairedId(codeToPair);
+          setApprovalStatus('pending');
+          setLoading(false);
+          return;
         }
-      } else {
-        await pairDeviceDirectly(codeToPair, user);
+        throw err;
       }
 
       setPairedId(codeToPair);
