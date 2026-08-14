@@ -20,11 +20,17 @@ export default function PwaInstallRecommendation({ forceShow = false, onCloseMod
   }
 
   const handleInstallClick = async () => {
-    const res = await promptInstall();
-    if (res?.outcome === 'accepted') {
-      toast.success(t('pwa_installed_badge'));
-      if (onCloseModal) onCloseModal();
-    } else if (res?.outcome === 'manual_guide' || !canPromptNative) {
+    if (canPromptNative) {
+      const res = await promptInstall();
+      if (res?.outcome === 'accepted') {
+        toast.success(t('pwa_installed_badge'));
+        if (onCloseModal) onCloseModal();
+      } else if (res?.outcome === 'dismissed') {
+        if (onCloseModal) onCloseModal();
+      } else {
+        setShowGuideModal(true);
+      }
+    } else {
       setShowGuideModal(true);
     }
   };

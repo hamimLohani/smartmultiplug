@@ -668,11 +668,9 @@ export default function Settings() {
             id="settings-pwa-install"
             className="settings-item"
             style={{ cursor: 'pointer' }}
-            onClick={async () => {
+            onClick={() => {
               if (isStandalone) {
                 toast.success(t('pwa_installed_badge'));
-              } else if (canPromptNative) {
-                await promptInstall();
               } else {
                 setShowPwaModal(true);
               }
