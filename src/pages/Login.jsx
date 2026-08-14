@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useDelayUnmount } from '../hooks/useDelayUnmount';
 import toast from 'react-hot-toast';
 
 import { useTheme } from '../contexts/ThemeContext';
@@ -31,7 +31,11 @@ export default function Login() {
   const [showReset, setShowReset] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const shouldRenderGuide = useDelayUnmount(showGuideModal, 250);
+  const guideClosing = !showGuideModal;
 
   const validate = () => {
     const e = {};
@@ -132,13 +136,13 @@ export default function Login() {
                 className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
                 onClick={() => setLang('bn')}
               >
-                বাংলা
+                বাং
               </button>
               <button
                 className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
                 onClick={() => setLang('en')}
               >
-                English
+                EN
               </button>
             </div>
           </div>
@@ -146,209 +150,232 @@ export default function Login() {
       </header>
 
       <div className="auth-container">
-        {/* Step-by-Step Onboarding Guide Card */}
-        <div className="card guide-card" style={{ padding: '24px 28px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>📖</span>
-            {lang === 'bn' ? 'কিভাবে সেটআপ ও ব্যবহার করবেন?' : 'How to Setup & Use?'}
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
-            {lang === 'bn'
-              ? 'আপনার স্মার্ট মাল্টি-প্লাগটি প্রথমবার সেটআপ করার জন্য নিচের ধাপগুলো মনোযোগ দিয়ে অনুসরণ করুন:'
-              : 'Follow these detailed steps to set up and start using your smart multi-plug strip:'}
-          </p>
-
-          <div className="setup-steps-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Step 1 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>1</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'পাওয়ার অন করুন (Power On)' : 'Power On the Plug'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'মাল্টি-প্লাগটির মেইন তারটি দেওয়ালের বৈদ্যুতিক সকেটে লাগান। প্লাগের ডিসপ্লে অথবা ইন্ডিকেটর লাল লাইটটি জ্বলে উঠবে।'
-                    : 'Plug the multi-plug strip into a wall socket. The OLED screen or status LED on the front will light up.'}
-                </p>
+        {/* Step-by-Step Onboarding Guide Modal */}
+        {shouldRenderGuide && (
+          <div className={`modal-overlay ${guideClosing ? 'animate-fade-out' : 'animate-fade-in'}`} onClick={() => setShowGuideModal(false)} style={{ paddingBottom: 16, alignItems: 'center' }}>
+            <div className={`modal-card guide-card ${guideClosing ? 'animate-slide-down' : 'animate-slide-up'}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                  <span>📖</span>
+                  {lang === 'bn' ? 'কিভাবে সেটআপ ও ব্যবহার করবেন?' : 'How to Setup & Use?'}
+                </h2>
+                <button className="btn btn-ghost" onClick={() => setShowGuideModal(false)} style={{ padding: '4px 10px' }}>&times;</button>
               </div>
-            </div>
+              
+              <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
+                {lang === 'bn'
+                  ? 'আপনার স্মার্ট মাল্টি-প্লাগটি প্রথমবার সেটআপ করার জন্য নিচের ধাপগুলো মনোযোগ দিয়ে অনুসরণ করুন:'
+                  : 'Follow these detailed steps to set up and start using your smart multi-plug strip:'}
+              </p>
 
-            {/* Step 2 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>2</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'মেনু ও ডিসপ্লে (Navigate Screen)' : 'Understand Screen & Menu'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'ডিসপ্লে স্ক্রিনে আপনার মাল্টি-প্লাগের অন/অফ অবস্থা এবং নেটওয়ার্ক স্ট্যাটাস দেখতে পাবেন। ডিসপ্লের নিচে ৩টি বোতাম (Up/Down/OK) চেপে স্ক্রিন মেনুতে ঘোরাঘুরি করতে পারবেন।'
-                    : 'The OLED screen shows the live state of each outlet. Use the 3 buttons (Up, Down, OK) below the screen to explore settings.'}
-                </p>
-              </div>
-            </div>
+              <div className="setup-steps-list" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Step 1 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>1</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'পাওয়ার অন করুন (Power On)' : 'Power On the Plug'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'মাল্টি-প্লাগটির মেইন তারটি দেওয়ালের বৈদ্যুতিক সকেটে লাগান। প্লাগের ডিসপ্লে অথবা ইন্ডিকেটর লাল লাইটটি জ্বলে উঠবে।'
+                        : 'Plug the multi-plug strip into a wall socket. The OLED screen or status LED on the front will light up.'}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Step 3 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>3</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'প্লাগের নিজস্ব ওয়াইফাই কানেক্ট করুন (Plug WiFi)' : 'Connect to Plug Hotspot'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'আপনার মোবাইল ফোনের WiFi চালু করুন। সেখানে "SPX-XXXXXXXX" (অথবা SP2/SP3) নামের একটি নতুন ওয়াইফাই দেখতে পাবেন। এটিতে ক্লিক করে কানেক্ট করুন (কোনো পাসওয়ার্ড লাগবে না)।'
-                    : 'Turn on your mobile WiFi settings. Connect to the hotspot named "SPX-XXXXXXXX" (or SP2-XXXX / SP3-XXXX). No password is required.'}
-                </p>
-              </div>
-            </div>
+                {/* Step 2 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>2</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'মেনু ও ডিসপ্লে (Navigate Screen)' : 'Understand Screen & Menu'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'ডিসপ্লে স্ক্রিনে আপনার মাল্টি-প্লাগের অন/অফ অবস্থা এবং নেটওয়ার্ক স্ট্যাটাস দেখতে পাবেন। ডিসপ্লের নিচে ৩টি বোতাম (Up/Down/OK) চেপে স্ক্রিন মেনুতে ঘোরাঘুরি করতে পারবেন।'
+                        : 'The OLED screen shows the live state of each outlet. Use the 3 buttons (Up, Down, OK) below the screen to explore settings.'}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Step 4 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>4</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'বাসার ওয়াইফাইয়ের সাথে প্লাগ কানেক্ট করুন (Setup Internet)' : 'Setup Home WiFi'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'প্লাগের ওয়াইফাই কানেক্ট করার পর আপনার মোবাইলে অটোমেটিক একটি সেটআপ পেজ খুলবে। পেজটি না আসলে ব্রাউজারে "192.168.4.1" লিখে গো (Go) চাপুন। সেখানে আপনার বাসার ওয়াইফাই সিলেক্ট করে পাসওয়ার্ড দিন এবং "Save" বাটনে ক্লিক করুন। প্লাগটি আপনার বাসার ইন্টারনেটে কানেক্ট হয়ে যাবে।'
-                    : 'After connecting to the hotspot, a settings page will auto-open. If it does not, open a browser and go to "192.168.4.1". Select your home WiFi SSID, type the password, and click "Save". The plug will connect to your home internet.'}
-                </p>
-              </div>
-            </div>
+                {/* Step 3 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>3</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'প্লাগের নিজস্ব ওয়াইফাই কানেক্ট করুন (Plug WiFi)' : 'Connect to Plug Hotspot'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'আপনার মোবাইল ফোনের WiFi চালু করুন। সেখানে "SPX-XXXXXXXX" (অথবা SP2/SP3) নামের একটি নতুন ওয়াইফাই দেখতে পাবেন। এটিতে ক্লিক করে কানেক্ট করুন (কোনো পাসওয়ার্ড লাগবে না)।'
+                        : 'Turn on your mobile WiFi settings. Connect to the hotspot named "SPX-XXXXXXXX" (or SP2-XXXX / SP3-XXXX). No password is required.'}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Step 5 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>5</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'ডিভাইস আইডি সংগ্রহ করুন (Device ID)' : 'Get Device ID'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'ডিসপ্লে মডেলে: প্লাগের বোতাম চেপে Menu → App Connect-এ যান। সেখানে "Device ID" (যেমন "SPX-XXXXXXXX") দেখতে পাবেন। ডিসপ্লে না থাকলে: প্লাগের বডি বা পেছনের স্টিকারে আইডিটি লেখা পাবেন।'
-                    : 'With Screen: Press the OK button on the strip, navigate to Menu → App Connect. Copy the "Device ID" (e.g. "SPX-XXXXXXXX"). Without Screen: Look at the printed sticker on the back of the plug casing.'}
-                </p>
-              </div>
-            </div>
+                {/* Step 4 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>4</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'বাসার ওয়াইফাইয়ের সাথে প্লাগ কানেক্ট করুন (Setup Internet)' : 'Setup Home WiFi'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'প্লাগের ওয়াইফাই কানেক্ট করার পর আপনার মোবাইলে অটোমেটিক একটি সেটআপ পেজ খুলবে। পেজটি না আসলে ব্রাউজারে "192.168.4.1" লিখে গো (Go) চাপুন। সেখানে আপনার বাসার ওয়াইফাই সিলেক্ট করে পাসওয়ার্ড দিন এবং "Save" বাটনে ক্লিক করুন। প্লাগটি আপনার বাসার ইন্টারনেটে কানেক্ট হয়ে যাবে।'
+                        : 'After connecting to the hotspot, a settings page will auto-open. If it does not, open a browser and go to "192.168.4.1". Select your home WiFi SSID, type the password, and click "Save". The plug will connect to your home internet.'}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Step 6 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>6</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'অ্যাকাউন্টে প্লাগ কানেক্ট করুন (App Connect)' : 'Pair with this Website'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'ডানপাশের ফর্ম থেকে এই ওয়েবসাইটে লগইন বা নতুন অ্যাকাউন্ট খুলুন। লগইন করার পর প্লাগ কানেক্ট (Pair) করার পেজে গিয়ে ডিভাইস আইডি (Device ID) বসিয়ে সাবমিট করুন।'
-                    : 'Register/Sign In using the form on the right. Once logged in, go to the "Pair Device" screen, enter your Device ID, and confirm.'}
-                </p>
-              </div>
-            </div>
+                {/* Step 5 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>5</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'ডিভাইস আইডি সংগ্রহ করুন (Device ID)' : 'Get Device ID'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'ডিসপ্লে মডেলে: প্লাগের বোতাম চেপে Menu → App Connect-এ যান। সেখানে "Device ID" (যেমন "SPX-XXXXXXXX") দেখতে পাবেন। ডিসপ্লে না থাকলে: প্লাগের বডি বা পেছনের স্টিকারে আইডিটি লেখা পাবেন।'
+                        : 'With Screen: Press the OK button on the strip, navigate to Menu → App Connect. Copy the "Device ID" (e.g. "SPX-XXXXXXXX"). Without Screen: Look at the printed sticker on the back of the plug casing.'}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Step 7 */}
-            <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
-              <div className="step-number" style={{
-                background: 'var(--clr-accent-dim)',
-                color: 'var(--clr-accent)',
-                width: '28px',
-                height: '28px',
-                minWidth: '28px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '14px'
-              }}>7</div>
-              <div>
-                <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
-                  {lang === 'bn' ? 'মোবাইল দিয়ে প্লাগ নিয়ন্ত্রণ করুন (App Control)' : 'Control & Automate'}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
-                  {lang === 'bn'
-                    ? 'প্লাগ কানেক্ট হয়ে গেলে ড্যাশবোর্ড থেকে প্রতিটি সকেট অন/অফ করতে পারবেন। এছাড়া টাইমার ও শিডিউল অপশনে গিয়ে সকেটগুলোর জন্য অটো-অফ বা সময়সূচী সেট করতে পারবেন।'
-                    : 'Once paired, use your mobile dashboard to toggle outlets instantly. You can also name your outlets, set countdown delay timers, or schedule auto ON/OFF times.'}
-                </p>
+                {/* Step 6 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>6</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'অ্যাকাউন্টে প্লাগ কানেক্ট করুন (App Connect)' : 'Pair with this Website'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'ডানপাশের ফর্ম থেকে এই ওয়েবসাইটে লগইন বা নতুন অ্যাকাউন্ট খুলুন। লগইন করার পর প্লাগ কানেক্ট (Pair) করার পেজে গিয়ে ডিভাইস আইডি (Device ID) বসিয়ে সাবমিট করুন।'
+                        : 'Register/Sign In using the form on the right. Once logged in, go to the "Pair Device" screen, enter your Device ID, and confirm.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 7 */}
+                <div className="step-item" style={{ display: 'flex', gap: '14px' }}>
+                  <div className="step-number" style={{
+                    background: 'var(--clr-accent-dim)',
+                    color: 'var(--clr-accent)',
+                    width: '28px',
+                    height: '28px',
+                    minWidth: '28px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                    fontSize: '14px'
+                  }}>7</div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '4px' }}>
+                      {lang === 'bn' ? 'মোবাইল দিয়ে প্লাগ নিয়ন্ত্রণ করুন (App Control)' : 'Control & Automate'}
+                    </h4>
+                    <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)', lineHeight: '1.5' }}>
+                      {lang === 'bn'
+                        ? 'প্লাগ কানেক্ট হয়ে গেলে ড্যাশবোর্ড থেকে প্রতিটি সকেট অন/অফ করতে পারবেন। এছাড়া টাইমার ও শিডিউল অপশনে গিয়ে সকেটগুলোর জন্য অটো-অফ বা সময়সূচী সেট করতে পারবেন।'
+                        : 'Once paired, use your mobile dashboard to toggle outlets instantly. You can also name your outlets, set countdown delay timers, or schedule auto ON/OFF times.'}
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              <div className="divider" style={{ margin: '32px 0 20px 0' }}></div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontSize: '14px', color: 'var(--clr-text-muted)', marginBottom: '16px' }}>
+                  {lang === 'bn' ? 'সবকিছু বুঝতে পেরেছেন?' : 'Ready to get started?'}
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-primary btn-full"
+                  onClick={() => setShowGuideModal(false)}
+                >
+                  {lang === 'bn' ? 'লগইন পেজে যান' : 'Go to Sign In'}
+                </button>
+              </div>
+
             </div>
           </div>
-        </div>
+        )}
 
         {/* Login / Reset Password Card */}
         <div className="auth-card">
@@ -432,14 +459,19 @@ export default function Login() {
                   {errors.password && <span className="form-error">⚠ {errors.password}</span>}
                 </div>
 
-                <button
-                  id="login-submit"
-                  type="submit"
-                  className="btn btn-primary btn-full btn-lg"
-                  disabled={loading}
-                >
-                  {loading ? <span className="spinner" /> : t('login_btn')}
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+                  <button
+                    id="login-submit"
+                    type="submit"
+                    className="btn btn-primary btn-full btn-lg"
+                    disabled={loading}
+                  >
+                    {loading ? <span className="spinner" /> : t('login_btn')}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-full" onClick={() => setShowGuideModal(true)} style={{ color: 'var(--clr-text-muted)', fontSize: 14 }}>
+                    <span style={{ marginRight: 6 }}>📖</span> {lang === 'bn' ? 'কিভাবে সেটআপ করবেন?' : 'How to Setup & Use?'}
+                  </button>
+                </div>
               </form>
 
               <div className="divider" style={{ margin: '20px 0' }}>{t('login_or')}</div>
@@ -486,7 +518,7 @@ export default function Login() {
                 className="btn btn-ghost btn-full"
                 onClick={() => setShowReset(false)}
               >
-                {t('reset_back')}
+                {t('reset_cancel')}
               </button>
             </form>
           )}

@@ -916,11 +916,13 @@ a {
 .auth-container {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   max-width: 480px;
   padding: 40px 20px;
-  z-index: 1;
+  position: relative;
+  margin: 0 auto;
 }
 
 .auth-card {
@@ -930,13 +932,17 @@ a {
   border: 1px solid var(--clr-border-md);
   border-radius: var(--radius-xl);
   padding: 36px 32px;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.4s var(--transition-slow) both;
-  order: 1;
+  box-shadow: var(--shadow-lg), 0 0 60px rgba(var(--clr-accent-rgb), 0.1);
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both, authFloat 6s ease-in-out infinite;
+}
+
+@keyframes authFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
 }
 
 .guide-card {
-  order: 2;
   width: 100%;
   animation: slideUp 0.5s var(--transition-slow) both;
 }
@@ -982,23 +988,12 @@ a {
 
 @media (min-width: 900px) {
   .auth-container {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
-    max-width: 1100px;
-    gap: 40px;
+    padding-top: 8vh;
   }
 
   .auth-card {
-    order: 2;
-    max-width: 420px;
-    flex: 1;
-  }
-
-  .guide-card {
-    order: 1;
-    max-width: 640px;
-    flex: 1.5;
+    max-width: 440px;
+    padding: 48px 40px;
   }
 }
 

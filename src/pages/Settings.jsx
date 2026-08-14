@@ -605,13 +605,13 @@ export default function Settings() {
                 className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
                 onClick={() => setLang('bn')}
               >
-                বাংলা
+                বাং
               </button>
               <button
                 className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
                 onClick={() => setLang('en')}
               >
-                English
+                EN
               </button>
             </div>
           </div>

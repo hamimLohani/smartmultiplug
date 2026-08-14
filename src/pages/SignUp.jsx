@@ -99,29 +99,54 @@ export default function SignUp() {
             <span className="auth-brand-name">{t('login_title')}</span>
           </div>
           <div className="lang-switcher-wrap">
-            <button
-              className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
-              onClick={() => setLang('bn')}
-            >
-              বাংলা
-            </button>
-            <button
-              className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
-              onClick={() => setLang('en')}
-            >
-              English
-            </button>
+              <button
+                className={`lang-btn ${lang === 'bn' ? 'active' : ''}`}
+                onClick={() => setLang('bn')}
+              >
+                বাং
+              </button>
+              <button
+                className={`lang-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => setLang('en')}
+              >
+                EN
+              </button>
           </div>
         </div>
       </header>
 
-      <div className="auth-container" style={{ maxWidth: '460px' }}>
+      <div className="auth-container">
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">🔌</div>
-            <div>
-              <p className="auth-title">{lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Create Account'}</p>
-              <p className="auth-subtitle">{t('signup_subtitle')}</p>
+            <div className="auth-logo-icon" style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              background: 'linear-gradient(135deg, var(--clr-accent), var(--clr-accent-2))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 32,
+              boxShadow: 'var(--shadow-accent)',
+              marginBottom: 4,
+            }}>
+              🔌
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <p className="auth-title" style={{
+                fontSize: 26,
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                background: 'linear-gradient(135deg, var(--clr-text), var(--clr-text-muted))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                lineHeight: 1.2,
+              }}>
+                {lang === 'bn' ? 'নতুন অ্যাকাউন্ট' : 'Create Account'}
+              </p>
+              <p className="auth-subtitle" style={{ fontSize: 14, color: 'var(--clr-text-muted)', marginTop: 6 }}>
+                {t('signup_subtitle')}
+              </p>
             </div>
           </div>
 
