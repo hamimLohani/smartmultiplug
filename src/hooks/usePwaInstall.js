@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
 
+let globalDeferredPrompt = null;
+const promptListeners = new Set();
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    globalDeferredPrompt = e;
+    promptListeners.forEach(listener => listener(e));
+  });
+}
+
 function checkIsStandalone() {
   if (typeof window === 'undefined') return false;
   return (
@@ -19,7 +30,7 @@ function checkIsIos() {
 
 export function usePwaInstall() {
   const [isStandalone, setIsStandalone] = useState(checkIsStandalone);
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [deferredPrompt, setDeferredPrompt] = useState(globalDeferredPrompt);
   const [isDismissed, setIsDismissed] = useState(() => {
     try {
       return localStorage.getItem('pwa_install_dismissed') === 'true';
@@ -31,14 +42,20 @@ export function usePwaInstall() {
   const isIos = checkIsIos();
 
   useEffect(() => {
+    if (globalDeferredPrompt && !deferredPrompt) {
+      setDeferredPrompt(globalDeferredPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
       setDeferredPrompt(e);
     };
+
+    promptListeners.add(handleBeforeInstallPrompt);
 
     const handleAppInstalled = () => {
       setIsStandalone(true);
       setDeferredPrompt(null);
+      globalDeferredPrompt = null;
     };
 
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
@@ -52,11 +69,10 @@ export function usePwaInstall() {
       mediaQuery.addListener(handleMediaChange);
     }
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      promptListeners.delete(handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
       if (mediaQuery.removeEventListener) {
         mediaQuery.removeEventListener('change', handleMediaChange);
@@ -64,7 +80,7 @@ export function usePwaInstall() {
         mediaQuery.removeListener(handleMediaChange);
       }
     };
-  }, []);
+  }, [deferredPrompt]);
 
   const promptInstall = async () => {
     if (deferredPrompt) {
