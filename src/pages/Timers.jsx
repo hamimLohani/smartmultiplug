@@ -421,7 +421,7 @@ export default function Timers() {
     return (
       <div className="page-wrap">
         <div className="bg-mesh" />
-        <div className="container timers-container">
+        <div className="container timers-container page-enter">
           {/* Header */}
           <div className="dash-hero">
             <div>
@@ -466,7 +466,7 @@ export default function Timers() {
     <div className="page-wrap">
       <div className="bg-mesh" />
 
-      <div className="container timers-container">
+      <div className="container timers-container page-enter">
         <div className="dash-hero">
           <div>
             <span className="dash-kicker">

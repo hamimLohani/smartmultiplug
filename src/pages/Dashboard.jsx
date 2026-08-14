@@ -225,7 +225,7 @@ export default function Dashboard() {
     return (
       <div className="page-wrap">
         <div className="bg-mesh" />
-        <div className="container dash-container">
+        <div className="container dash-container page-enter">
           {/* Header */}
           <div className="dash-hero">
             <div>
@@ -269,7 +269,7 @@ export default function Dashboard() {
     <div className="page-wrap">
       <div className="bg-mesh" />
 
-      <div className="container dash-container">
+      <div className="container dash-container page-enter">
         {/* Header */}
         <div className="dash-hero">
           <div>

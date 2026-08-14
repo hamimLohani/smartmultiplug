@@ -364,6 +364,7 @@ export default function Settings() {
   };
 
   const [sharedMembers, setSharedMembers] = useState([]);
+  const [memberToRemove, setMemberToRemove] = useState(null);
 
   useEffect(() => {
     if (!db || !user || !deviceId || device?.is_shared) {
@@ -532,7 +533,7 @@ export default function Settings() {
   return (
     <div className="page-wrap">
       <div className="bg-mesh" />
-      <div className="container settings-container">
+      <div className="container settings-container page-enter">
         <div className="dash-hero">
           <div>
             <span className="dash-kicker">
@@ -895,7 +896,7 @@ export default function Settings() {
                     </div>
                     <button
                       className="btn btn-ghost btn-sm"
-                      onClick={() => handleRevokeAccess(member.uid)}
+                      onClick={() => setMemberToRemove(member)}
                       style={{ color: 'var(--clr-red)' }}
                     >
                       {lang === 'bn' ? 'রিমুভ করুন' : 'Remove'}
@@ -987,6 +988,22 @@ export default function Settings() {
         cancelLabel={t('cancel')}
         onConfirm={handleLogout}
         onCancel={() => setShowLogout(false)}
+      />
+
+      <Modal
+        show={!!memberToRemove}
+        title={lang === 'bn' ? 'সদস্য মুছে ফেলুন' : 'Remove Member'}
+        body={lang === 'bn' ? 'আপনি কি নিশ্চিত যে আপনি এই সদস্যকে মুছে ফেলতে চান? তারা আর এই ডিভাইসটি নিয়ন্ত্রণ করতে পারবেন না।' : 'Are you sure you want to remove this member? They will no longer be able to control this device.'}
+        confirmLabel={lang === 'bn' ? 'মুছে ফেলুন' : 'Remove'}
+        cancelLabel={t('cancel')}
+        danger
+        onConfirm={() => {
+          if (memberToRemove) {
+            handleRevokeAccess(memberToRemove.uid);
+            setMemberToRemove(null);
+          }
+        }}
+        onCancel={() => setMemberToRemove(null)}
       />
 
       <ChangePasswordModal show={showChangePw} onClose={() => setShowChangePw(false)} lang={lang} t={t} />

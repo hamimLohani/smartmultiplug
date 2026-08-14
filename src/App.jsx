@@ -38,45 +38,62 @@ function SetupGuide() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', lineHeight: 1.6, animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', animationDelay: '0.1s' }}>
             Please follow these quick steps to launch the app:
           </p>
 
-          <ol style={{ paddingLeft: 20, fontSize: 14, color: 'var(--clr-text)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <li>
-              <strong>Create a configuration file:</strong>
-              <div style={{
-                background: 'var(--clr-surface-2)',
-                border: '1px solid var(--clr-border)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px 14px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 12,
-                marginTop: 6,
-                color: 'var(--clr-text-muted)',
-              }}>
-                cp .env.example .env
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="pwa-step-card" style={{ animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', animationDelay: '0.2s' }}>
+              <div className="pwa-step-num">1</div>
+              <div className="pwa-step-text">
+                <strong>Create a configuration file:</strong>
+                <div style={{
+                  background: 'var(--clr-surface-2)',
+                  border: '1px solid var(--clr-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 12,
+                  marginTop: 6,
+                  color: 'var(--clr-text-muted)',
+                }}>
+                  cp .env.example .env
+                </div>
               </div>
-            </li>
-            <li>
-              <strong>Open the newly created <code>.env</code> file</strong> in your editor.
-            </li>
-            <li>
-              <strong>Fill in your Firebase credentials</strong> and your MQTT broker WebSocket credentials.
-            </li>
-            <li>
-              <strong>Restart your development server</strong> by stopping the current terminal process and running <code>npm run dev</code> again.
-            </li>
-          </ol>
+            </div>
+
+            <div className="pwa-step-card" style={{ animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', animationDelay: '0.3s' }}>
+              <div className="pwa-step-num">2</div>
+              <div className="pwa-step-text">
+                <strong>Open the newly created <code>.env</code> file</strong> in your editor.
+              </div>
+            </div>
+
+            <div className="pwa-step-card" style={{ animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', animationDelay: '0.4s' }}>
+              <div className="pwa-step-num">3</div>
+              <div className="pwa-step-text">
+                <strong>Fill in your Firebase credentials</strong> and your MQTT broker WebSocket credentials.
+              </div>
+            </div>
+
+            <div className="pwa-step-card" style={{ animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', animationDelay: '0.5s' }}>
+              <div className="pwa-step-num">4</div>
+              <div className="pwa-step-text">
+                <strong>Restart your development server</strong> by stopping the current terminal process and running <code>npm run dev</code> again.
+              </div>
+            </div>
+          </div>
 
           <div style={{
-            marginTop: 12,
+            marginTop: 4,
             padding: '12px 16px',
             background: 'var(--clr-surface-2)',
             border: '1px solid var(--clr-border)',
             borderRadius: 'var(--radius-lg)',
             fontSize: 13,
             color: 'var(--clr-text-muted)',
+            animation: 'slideUp 0.4s cubic-bezier(0.4,0,0.2,1) both', 
+            animationDelay: '0.6s'
           }}>
             ℹ️ Read the <strong>README.md</strong> file in the workspace directory for detailed setup instructions.
           </div>
