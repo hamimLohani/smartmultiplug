@@ -510,14 +510,14 @@ export default function Timers() {
               {lang === 'bn' ? 'স্মার্ট অটোমেশন' : 'Smart Automation'}
             </span>
             <h1 className="page-title dash-title">{t('timers_title')}</h1>
-            {devices.length > 1 && deviceId ? (
+            {devices?.length > 1 && deviceId ? (
               <div className="device-select-container">
                 <select
                   className="device-select-dropdown"
                   value={deviceId || ''}
                   onChange={(e) => selectDevice(e.target.value)}
                 >
-                  {devices.map((d) => (
+                  {devices?.map((d) => (
                     <option key={d.id} value={d.id}>
                       🔌 {d.name || 'Smart Multi-Plug'} ({d.id})
                     </option>

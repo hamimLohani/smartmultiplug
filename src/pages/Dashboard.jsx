@@ -279,14 +279,14 @@ export default function Dashboard() {
               {lang === 'bn' ? 'লাইভ কন্ট্রোল' : 'Live Control'}
             </span>
             <h1 className="page-title dash-title">{t('dash_title')}</h1>
-            {devices.length > 1 && deviceId ? (
+            {devices?.length > 1 && deviceId ? (
               <div className="device-select-container">
                 <select
                   className="device-select-dropdown"
                   value={deviceId || ''}
                   onChange={(e) => selectDevice(e.target.value)}
                 >
-                  {devices.map((d) => (
+                  {devices?.map((d) => (
                     <option key={d.id} value={d.id}>
                       🔌 {d.name || 'Smart Multi-Plug'} ({d.id})
                     </option>
@@ -380,7 +380,7 @@ export default function Dashboard() {
         </div>
 
         <div className="plug-grid">
-          {plugsList.map((n) => (
+          {plugsList?.map((n) => (
             <PlugCard
               key={n}
               plugNum={n}
