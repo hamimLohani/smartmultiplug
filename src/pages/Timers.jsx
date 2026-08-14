@@ -185,6 +185,8 @@ export default function Timers() {
     );
   }
 
+  const pendingDeleteRefs = useRef(new Set());
+
   // Load schedule entries from RTDB
   useEffect(() => {
     if (!user || !deviceId || !ownerUid) return;
@@ -216,22 +218,27 @@ export default function Timers() {
         return !deviceList.some((item) => scheduleMatchesTimer(item, timer));
       });
 
-      if (finishedOnceTimers.length === 0) return;
+      const newlyFinished = finishedOnceTimers.filter((t) => !pendingDeleteRefs.current.has(t.id));
+      if (newlyFinished.length === 0) return;
+
+      newlyFinished.forEach((t) => pendingDeleteRefs.current.add(t.id));
 
       // Add a 5-second delay before visually removing it, as requested
       setTimeout(async () => {
         setActiveTimers((prev) =>
-          prev.filter((timer) => !finishedOnceTimers.some((done) => done.id === timer.id))
+          prev.filter((timer) => !newlyFinished.some((done) => done.id === timer.id))
         );
 
         try {
           await Promise.all(
-            finishedOnceTimers.map((timer) =>
+            newlyFinished.map((timer) =>
               remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`))
             )
           );
         } catch (err) {
           console.error('Failed to auto-delete finished once schedule from RTDB:', err);
+        } finally {
+          newlyFinished.forEach((t) => pendingDeleteRefs.current.delete(t.id));
         }
       }, 5000);
     };
