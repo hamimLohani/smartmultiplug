@@ -974,7 +974,7 @@ export default function Settings() {
         </div>
 
         <p className="settings-version">
-          Smart Multi-Plug v1.0
+          Smart Multi-Plug v1.1.0
         </p>
       </div>
 
