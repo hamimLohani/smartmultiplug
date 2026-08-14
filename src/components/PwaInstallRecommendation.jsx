@@ -9,16 +9,6 @@ export default function PwaInstallRecommendation({ forceShow = false, onCloseMod
   const { t } = useLanguage();
   const [showGuideModal, setShowGuideModal] = useState(false);
 
-  // If app is already running in standalone mode (installed), don't show prompt
-  if (isStandalone && !forceShow) {
-    return null;
-  }
-
-  // If user dismissed the prompt and forceShow is not set, don't display
-  if (isDismissed && !forceShow && !showGuideModal) {
-    return null;
-  }
-
   const handleInstallClick = async () => {
     if (canPromptNative) {
       const res = await promptInstall();
@@ -40,7 +30,8 @@ export default function PwaInstallRecommendation({ forceShow = false, onCloseMod
     if (onCloseModal) onCloseModal();
   };
 
-  const showPopup = (!isDismissed || forceShow) && !showGuideModal;
+  const isHidden = (isStandalone || isDismissed) && !forceShow;
+  const showPopup = !isHidden && !showGuideModal;
   const shouldRenderPopup = useDelayUnmount(showPopup, 250);
   const popupClosing = !showPopup;
 
