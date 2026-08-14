@@ -199,8 +199,8 @@ export default function Timers() {
     return () => off(schedRef, 'value', handle);
   }, [user, deviceId, ownerUid]);
 
-  // Temporarily disabled to debug schedule deletion issue
-  /*
+  // Clean up completed 'once' schedules from RTDB after the device executes
+  // them and republishes a schedule list without the fired item.
   useEffect(() => {
     if (!db || !user || !deviceId) return;
 
@@ -218,24 +218,26 @@ export default function Timers() {
 
       if (finishedOnceTimers.length === 0) return;
 
-      setActiveTimers((prev) =>
-        prev.filter((timer) => !finishedOnceTimers.some((done) => done.id === timer.id))
-      );
-
-      try {
-        await Promise.all(
-          finishedOnceTimers.map((timer) =>
-            remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`))
-          )
+      // Add a 5-second delay before visually removing it, as requested
+      setTimeout(async () => {
+        setActiveTimers((prev) =>
+          prev.filter((timer) => !finishedOnceTimers.some((done) => done.id === timer.id))
         );
-      } catch (err) {
-        console.error('Failed to auto-delete finished once schedule from RTDB:', err);
-      }
+
+        try {
+          await Promise.all(
+            finishedOnceTimers.map((timer) =>
+              remove(ref(db, `users/${ownerUid}/devices/${deviceId}/schedules/${timer.id}`))
+            )
+          );
+        } catch (err) {
+          console.error('Failed to auto-delete finished once schedule from RTDB:', err);
+        }
+      }, 5000);
     };
 
     cleanupFinishedOnceSchedules();
   }, [db, user, deviceId, ownerUid, activeTimers, mqttSchedules]);
-  */
 
   const getDelayMinutes = () => {
     if (delayPreset) return delayPreset;
