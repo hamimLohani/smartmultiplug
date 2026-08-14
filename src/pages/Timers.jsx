@@ -29,9 +29,13 @@ function isOnceSchedule(timer) {
 }
 
 function scheduleMatchesTimer(schedule, timer) {
-  return schedule?.enabled !== false &&
-    schedule?.time === timer.time &&
-    schedule?.action === timer.action;
+  const time = schedule?.t || schedule?.time;
+  const action = (schedule?.a === 1 || schedule?.action === 'ON') ? 'ON' : 'OFF';
+  const enabled = (schedule?.e !== 0 && schedule?.enabled !== false);
+  
+  return enabled &&
+    time === timer.time &&
+    action === timer.action;
 }
 
 function WifiNotice({ connected, t }) {
@@ -332,10 +336,10 @@ export default function Timers() {
         .concat({ id: newRef.key, ...entry });
         
       const payloadToEsp = schedulesForPlug.map(s => ({
-        time: s.time,
-        action: s.action,
-        repeat: s.repeat === 'custom' ? 'daily' : s.repeat, // Fallback since ESP lacks DOW support
-        enabled: s.enabled
+        t: s.time,
+        a: s.action === 'ON' ? 1 : 0,
+        r: (s.repeat === 'custom' ? 'daily' : s.repeat) === 'once' ? 0 : 1,
+        e: s.enabled ? 1 : 0
       }));
       
       publish(
@@ -382,10 +386,10 @@ export default function Timers() {
       // Re-publish updated schedule list (retained) with minimized payload
       const remaining = activeTimers.filter(t => t.id !== timer.id && t.plugNum === timer.plugNum);
       const payloadToEsp = remaining.map(s => ({
-        time: s.time,
-        action: s.action,
-        repeat: s.repeat === 'custom' ? 'daily' : s.repeat,
-        enabled: s.enabled
+        t: s.time,
+        a: s.action === 'ON' ? 1 : 0,
+        r: (s.repeat === 'custom' ? 'daily' : s.repeat) === 'once' ? 0 : 1,
+        e: s.enabled ? 1 : 0
       }));
       publish(`${baseTopic}/plug/${timer.plugNum}/schedule`, payloadToEsp, { retain: true });
     }
@@ -398,10 +402,15 @@ export default function Timers() {
     const plugNum = parseInt(plugNumStr, 10);
     if (!Array.isArray(list)) return;
     list.forEach((item, index) => {
-      if (item.enabled) {
+      const time = item.t || item.time;
+      const action = (item.a === 1 || item.action === 'ON') ? 'ON' : 'OFF';
+      const repeat = (item.r === 1 || item.repeat === 'daily') ? 'daily' : 'once';
+      const enabled = (item.e !== 0 && item.enabled !== false);
+
+      if (enabled) {
         // Avoid duplicate if same schedule exists in RTDB
         const exists = activeTimers.some(
-          (t) => t.plugNum === plugNum && t.time === item.time && t.action === item.action
+          (t) => t.plugNum === plugNum && t.time === time && t.action === action
         );
         if (!exists) {
           deviceSchedules.push({
@@ -409,10 +418,10 @@ export default function Timers() {
             type: 'schedule',
             plugNum,
             plugLabel: plugLabels[plugNum] || (lang === 'bn' ? `প্লাগ ${plugNum}` : `Plug ${plugNum}`),
-            action: item.action,
-            time: item.time,
-            repeat: item.repeat || 'daily',
-            days: item.repeat === 'once' ? 'once' : 'all',
+            action: action,
+            time: time,
+            repeat: repeat,
+            days: repeat === 'once' ? 'once' : 'all',
             enabled: true,
             isFromDevice: true,
             slotIndex: index,
