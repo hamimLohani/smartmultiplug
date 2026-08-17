@@ -498,20 +498,7 @@ export default function Settings() {
       const { publishAsync } = await import('../mqtt');
       await publishAsync(`users/${ownerUid}/devices/${deviceId}/unpair`, 'unpair', { retain: true });
 
-      if (functions) {
-        try {
-          const unclaimDevice = httpsCallable(functions, 'unclaimDevice');
-          await unclaimDevice({ deviceId });
-        } catch (err) {
-          if (['functions/internal', 'functions/unavailable'].includes(err.code)) {
-            await unpairDeviceDirectly(deviceId, user.uid, device?.is_shared);
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        await unpairDeviceDirectly(deviceId, user.uid, device?.is_shared);
-      }
+      await unpairDeviceDirectly(deviceId, user.uid, device?.is_shared);
 
       const remainingCount = (devices || []).length - 1;
       toast.success(lang === 'bn' ? 'আপনার অ্যাকাউন্ট থেকে ডিভাইসটি মুছে ফেলা হয়েছে।' : 'Device removed from your account.');

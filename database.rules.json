@@ -3,7 +3,7 @@
     "devices": {
       "$deviceId": {
         ".read": "auth != null",
-        ".write": "!data.exists() || (auth != null && !data.child('claimed_by').exists()) || (newData.child('secret').val() === data.child('secret').val() && !data.child('claimed_by').exists())",
+        ".write": "!data.exists() || (auth != null && (!data.child('claimed_by').exists() || data.child('claimed_by').val() === null)) || (auth != null && data.child('claimed_by').val() === auth.uid) || (auth === null && newData.child('secret').val() === data.child('secret').val())",
         "pairing_requests": {
           "$guestUid": {
             ".read": "auth != null && (auth.uid === $guestUid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid)",

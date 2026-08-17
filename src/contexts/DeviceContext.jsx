@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ref, onValue, off, update, remove } from 'firebase/database';
-import { db, functions, isFirebaseConfigured } from '../firebase';
-import { httpsCallable } from 'firebase/functions';
+import { db, isFirebaseConfigured } from '../firebase';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
 
@@ -166,10 +165,11 @@ export function DeviceProvider({ children }) {
         if (msg === 'unpair') {
           console.log('[DeviceContext] Received unpair command from device via MQTT');
           try {
-            // 1. Remove device pairing details via Cloud Function
-            if (!functions) throw new Error("Functions not initialized");
-            const unclaimDevice = httpsCallable(functions, 'unclaimDevice');
-            await unclaimDevice({ deviceId: activeDeviceId });
+            // 1. Remove device pairing details directly via DB
+            const deviceRef = ref(db, `devices/${activeDeviceId}`);
+            await update(deviceRef, { claimed_by: null, claimed_at: null });
+            await remove(ref(db, `devices/${activeDeviceId}/shared_members`));
+            await remove(ref(db, `users/${ownerUid}/devices/${activeDeviceId}`));
 
             // 2. Clear retained unpair message
             publish(userTopic, '', { retain: true });
