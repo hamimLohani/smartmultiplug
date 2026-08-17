@@ -15,9 +15,18 @@ const { getDatabase }        = require('firebase-admin/database');
 initializeApp();
 
 function getNumPlugsFromDeviceId(deviceId) {
+  // New format: SH{plugs}{sensors}-XXXXXXXX  e.g. SH2-..., SH3d-..., SH4gfd-...
+  const shMatch = deviceId.match(/^SH([234])/i);
+  if (shMatch) return parseInt(shMatch[1], 10);
+  // Legacy SP format
   if (deviceId.startsWith('SP2-')) return 2;
   if (deviceId.startsWith('SP3-')) return 3;
   return 4;
+}
+
+function getDeviceNameFromId(deviceId) {
+  if (deviceId.toUpperCase().startsWith('SH')) return 'Smart Home';
+  return 'Smart Multi-Plug';
 }
 
 // ── claimDevice ─────────────────────────────────────────────────────────────
@@ -53,18 +62,28 @@ exports.claimDevice = onCall(async (request) => {
   // 4. Atomic write: mark device as claimed + create user device record
   const now = Date.now();
   const numPlugs = getNumPlugsFromDeviceId(deviceId);
+  // Parse sensor capabilities from the device ID prefix (e.g. SH4GFD -> gas+flame+dht11)
+  const sensorSuffix = (deviceId.match(/^SH[234]([GFDgfd]*)(?:-|$)/i)?.[1] ?? '').toLowerCase();
   const updates = {
     [`/devices/${deviceId}/claimed_by`]: uid,
     [`/devices/${deviceId}/claimed_at`]: now,
-    [`/users/${uid}/devices/${deviceId}/name`]: 'Smart Multi-Plug',
+    [`/users/${uid}/devices/${deviceId}/name`]: getDeviceNameFromId(deviceId),
     [`/users/${uid}/devices/${deviceId}/paired_at`]: now,
+    [`/users/${uid}/devices/${deviceId}/sensors/gas`]:   sensorSuffix.includes('g'),
+    [`/users/${uid}/devices/${deviceId}/sensors/flame`]: sensorSuffix.includes('f'),
+    [`/users/${uid}/devices/${deviceId}/sensors/dht11`]: sensorSuffix.includes('d'),
   };
 
   for (let n = 1; n <= numPlugs; n++) {
     updates[`/users/${uid}/devices/${deviceId}/plugs/${n}/label`] = `Plug ${n}`;
   }
 
-  await db.ref().update(updates);
+  try {
+    await db.ref().update(updates);
+  } catch (err) {
+    console.error('[claimDevice] Database write failed:', err);
+    throw new HttpsError('internal', 'Failed to write device data: ' + err.message);
+  }
 
   return { success: true, deviceId };
 });

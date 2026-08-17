@@ -13,7 +13,7 @@ const CONFIRM_TIMEOUT_MS = 5000;
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, mqttOk } = useAuth();
-  const { devices, device, deviceId, plugLabels, updatePlugLabel, selectDevice, loading, numPlugs } = useDevice();
+  const { devices, device, deviceId, plugLabels, updatePlugLabel, selectDevice, loading, numPlugs, deviceSensors } = useDevice();
   const { lang, t } = useLanguage();
   const publish = useMqttPublish();
 
@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [pending, setPending]         = useState({});    // plug num -> true while waiting for confirm
   const [failed, setFailed]           = useState({});    // plug num -> true if device didn't respond
   const [online, setOnline]           = useState(null);  // null=unknown, true, false
+  const [sensorData, setSensorData]   = useState(null);  // {temperature, humidity, gas, flame}
 
   const confirmTimers = useRef({});
   const lastResponseTimeRef = useRef(null);
@@ -142,6 +143,18 @@ export default function Dashboard() {
     );
   }
 
+
+  // Subscribe to sensor data topic
+  useMqttSubscribe(
+    baseTopic ? `${baseTopic}/sensors` : null,
+    (msg) => {
+      try {
+        const data = JSON.parse(msg);
+        setSensorData(data);
+      } catch { /* ignore */ }
+    }
+  );
+
   const handleToggle = useCallback((plugNum, newState) => {
     if (!baseTopic || !mqttOk) return;
 
@@ -220,6 +233,57 @@ export default function Dashboard() {
 
     return () => clearInterval(interval);
   }, [baseTopic, mqttOk, online, performSyncCheck]);
+
+
+  // ── Sensor Card ───────────────────────────────────────────────────────────
+  const hasSensors = deviceSensors && (deviceSensors.gas || deviceSensors.flame || deviceSensors.dht11);
+  const SensorCard = () => {
+    if (!hasSensors || !sensorData) return null;
+    const items = [];
+    if (deviceSensors.dht11 && sensorData.temperature != null) {
+      items.push({ icon: '🌡️', label: lang === 'bn' ? 'তাপমাত্রা' : 'Temperature', value: `${sensorData.temperature?.toFixed(1)}°C` });
+      items.push({ icon: '💧', label: lang === 'bn' ? 'আর্দ্রতা' : 'Humidity',    value: `${sensorData.humidity?.toFixed(0)}%` });
+    }
+    if (deviceSensors.gas && sensorData.gas != null) {
+      items.push({ icon: sensorData.gas ? '🚨' : '✅', label: lang === 'bn' ? 'গ্যাস' : 'Gas', value: sensorData.gas ? (lang === 'bn' ? 'শনাক্ত!' : 'Detected!') : (lang === 'bn' ? 'স্বাভাবিক' : 'Normal'), alert: sensorData.gas });
+    }
+    if (deviceSensors.flame && sensorData.flame != null) {
+      items.push({ icon: sensorData.flame ? '🔥' : '✅', label: lang === 'bn' ? 'আগুন' : 'Flame', value: sensorData.flame ? (lang === 'bn' ? 'শনাক্ত!' : 'Detected!') : (lang === 'bn' ? 'স্বাভাবিক' : 'Normal'), alert: sensorData.flame });
+    }
+    if (items.length === 0) return null;
+    const anyAlert = items.some(i => i.alert);
+    return (
+      <div style={{
+        background: anyAlert ? 'var(--clr-red-dim)' : 'var(--clr-surface-2)',
+        border: `1px solid ${anyAlert ? 'var(--clr-red)' : 'var(--clr-border)'}`,
+        borderRadius: 'var(--radius-lg)',
+        padding: '14px 16px',
+        marginBottom: 20,
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 12,
+        alignItems: 'center',
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: anyAlert ? 'var(--clr-red)' : 'var(--clr-text-muted)', width: '100%', marginBottom: 4 }}>
+          {lang === 'bn' ? '🔬 সেন্সর রিডিং' : '🔬 Sensor Readings'}
+        </span>
+        {items.map(({ icon, label, value, alert }) => (
+          <div key={label} style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            minWidth: 72, flex: '1 1 72px',
+            background: alert ? 'rgba(255,0,0,0.08)' : 'var(--clr-surface-3)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '8px 10px',
+            border: alert ? '1px solid var(--clr-red)' : 'none',
+          }}>
+            <span style={{ fontSize: 20, marginBottom: 4 }}>{icon}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: alert ? 'var(--clr-red)' : 'var(--clr-text)' }}>{value}</span>
+            <span style={{ fontSize: 11, color: 'var(--clr-text-subtle)', textAlign: 'center' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   if (loading) return <SkeletonLoader />;
 
@@ -360,6 +424,9 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+
+        {/* Sensor readings card */}
+        {hasSensors && <SensorCard />}
 
         {/* Plug grid */}
         <div className="section-header dash-section-header">

@@ -7,7 +7,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
-const CODE_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
+// Device ID formats:
+//   Smart Home:       SH{plugs}{sensors}-{8hex}  e.g. SH4gfd-A1B2C3D4
+//   Smart Multi-Plug: SP{plugs}-{8hex}            e.g. SP4-A1B2C3D4
+const SH_REGEX = /^SH[234][GFDgfd]*-[A-Fa-f0-9]{8}$/;
+const SP_REGEX = /^SP[234]?-[A-Fa-f0-9]{8}$/;
+const CODE_REGEX = /^(SH[234][GFDgfd]*|SP[234]?)-[A-Fa-f0-9]{8}$/;
+
+// Detect device type from typed code prefix
+function detectDeviceType(code) {
+  const upper = code.toUpperCase();
+  if (upper.startsWith('SH')) return 'sh';
+  if (upper.startsWith('SP')) return 'sp';
+  return null; // unknown / not typed yet
+}
 
 
 function Step({ n, label, active, done }) {
@@ -84,7 +97,8 @@ export default function PairDevice() {
   const handleInput = (ev) => {
     const raw = ev.target.value.toUpperCase();
     // Allow typing alphanumeric characters and hyphen freely up to 12 chars
-    const clean = raw.replace(/[^SP234A-F0-9-]/g, '').slice(0, 12);
+    // Allow SH/SP prefix, digits, sensor suffix letters (G,F,D), hyphen, hex
+    const clean = raw.replace(/[^SHPGFD234A-F0-9-]/g, '').slice(0, 15);
     setCode(clean);
     setError('');
   };
@@ -94,39 +108,51 @@ export default function PairDevice() {
     setError('');
 
     let codeToPair = code.trim();
-    // Auto-prepend default 'SP-' if only 8-character hex code is entered
+    // Auto-prepend 'SH4-' for bare 8-hex input (default to Smart Home)
     if (/^[A-Fa-f0-9]{8}$/.test(codeToPair)) {
-      codeToPair = `SP-${codeToPair}`;
+      codeToPair = `SH4-${codeToPair}`;
     }
 
     if (!CODE_REGEX.test(codeToPair)) {
+      const isSHtype = codeToPair.toUpperCase().startsWith('SH');
       setError(
         lang === 'bn'
-          ? 'অনুগ্রহ করে সঠিক ফরম্যাটে ডিভাইস আইডি দিন, যেমন SPX-XXXXXXXX (এটি প্লাগের স্ক্রিনে দেখতে পাবেন)।'
-          : 'Enter a valid Device ID in the format SPX-XXXXXXXX (shown on your device screen or casing).'
+          ? (isSHtype
+            ? 'সঠিক Smart Home Device ID দিন, যেমন SH4gfd-XXXXXXXX'
+            : 'সঠিক Smart Multi-Plug Device ID দিন, যেমন SP4-XXXXXXXX')
+          : (isSHtype
+            ? 'Enter a valid Smart Home Device ID like SH4gfd-XXXXXXXX'
+            : 'Enter a valid Smart Multi-Plug Device ID like SP4-XXXXXXXX')
       );
       return;
     }
 
     setLoading(true);
     try {
-      // Resolve the correct prefix (SP-, SP2-, SP3-, SP4-) by querying the DB
+      // The full SH device ID includes sensor suffix (e.g. SH4gfd-XXXXXXXX).
+      // If user typed just SH4-XXXXXXXX without sensor suffix, try all suffix combos.
+      // For SP, try SP-, SP2-, SP3-, SP4- variants.
       let resolvedId = codeToPair;
-      if (codeToPair.startsWith('SP-')) {
-        const suffix = codeToPair.substring(3);
-        const prefixes = ['SP-', 'SP2-', 'SP3-', 'SP4-'];
-        for (const pref of prefixes) {
-          const testId = `${pref}${suffix}`;
+      const shBareMatch = codeToPair.match(/^(SH[234])(-[A-Fa-f0-9]{8})$/);
+      const spBareMatch = codeToPair.match(/^(SP)(-[A-Fa-f0-9]{8})$/);
+      if (shBareMatch) {
+        const [, plugPart, hexPart] = shBareMatch;
+        const suffixes = ['gfd', 'gf', 'gd', 'fd', 'g', 'f', 'd', ''];
+        for (const s of suffixes) {
+          const testId = `${plugPart}${s}${hexPart}`;
           try {
-            const deviceRef = ref(db, `devices/${testId}`);
-            const snap = await get(deviceRef);
-            if (snap.exists()) {
-              resolvedId = testId;
-              break;
-            }
-          } catch (e) {
-            // Ignore read/permission errors (e.g. if node exists but database rules restrict access)
-          }
+            const snap = await get(ref(db, `devices/${testId}`));
+            if (snap.exists()) { resolvedId = testId; break; }
+          } catch (e) { /* ignore permission errors */ }
+        }
+      } else if (spBareMatch) {
+        const hexPart = spBareMatch[2];
+        for (const pref of ['SP4', 'SP3', 'SP2', 'SP']) {
+          const testId = `${pref}${hexPart}`;
+          try {
+            const snap = await get(ref(db, `devices/${testId}`));
+            if (snap.exists()) { resolvedId = testId; break; }
+          } catch (e) { /* ignore */ }
         }
       }
       codeToPair = resolvedId;
@@ -139,19 +165,25 @@ export default function PairDevice() {
       try {
         await claimDevice({ deviceId: codeToPair });
       } catch (err) {
-        if (err.code === 'already-exists' || err.message.includes('already paired')) {
+        const code = err.code || '';
+        const msg = err.message || '';
+        if (code === 'already-exists' || msg.includes('already paired') || code === 'already-claimed' || msg.includes('already-claimed')) {
           // Write guest details to devices pairing requests path
-          const reqRef = ref(db, `devices/${codeToPair}/pairing_requests/${user.uid}`);
-          await update(reqRef, {
-            email: user.email || 'guest@email.com',
-            name: user.displayName || user.email || 'Guest Member',
-            requested_at: Date.now(),
-            status: "pending"
-          });
-          setPairedId(codeToPair);
-          setApprovalStatus('pending');
-          setLoading(false);
-          return;
+          try {
+            const reqRef = ref(db, `devices/${codeToPair}/pairing_requests/${user.uid}`);
+            await update(reqRef, {
+              email: user.email || 'guest@email.com',
+              name: user.displayName || user.email || 'Guest Member',
+              requested_at: Date.now(),
+              status: "pending"
+            });
+            setPairedId(codeToPair);
+            setApprovalStatus('pending');
+            setLoading(false);
+            return;
+          } catch (reqErr) {
+             throw new Error('already-exists');
+          }
         }
         throw err;
       }
@@ -159,26 +191,32 @@ export default function PairDevice() {
       setPairedId(codeToPair);
       setStep(2);
     } catch (err) {
-      if (err.message === 'awaiting-approval') {
-        setPairedId(codeToPair);
-        setApprovalStatus('pending');
-        return;
-      }
       console.error('[PairDevice] Claim error:', err);
-      if (err.message?.includes('already-claimed') || err.code?.includes('already-claimed')) {
-        setError(
-          lang === 'bn'
-            ? 'এই মাল্টি-প্লাগটি ইতিমধ্যে অন্য একটি অ্যাকাউন্টে যুক্ত করা আছে। প্রয়োজনে সাপোর্ট টিমের সাথে যোগাযোগ করুন।'
-            : 'This device is already paired to another account. Contact support if this is your device.'
-        );
-      } else if (err.message?.includes('permission_denied') || err.code?.includes('permission-denied')) {
-        setError(
-          lang === 'bn'
-            ? 'অনুমতি নেই। আপনার অ্যাকাউন্ট লগইন করা আছে কিনা নিশ্চিত করুন।'
-            : 'Permission denied. Make sure you are logged in and the device is provisioned.'
-        );
+      const code = err.code || '';
+      const msg  = err.message || '';
+
+      if (msg === 'already-exists') {
+        setError(lang === 'bn'
+          ? 'এই ডিভাইসটি অন্য অ্যাকাউন্টে যুক্ত এবং অনুরোধ পাঠানো যায়নি।'
+          : 'Device is already paired and the pairing request could not be sent.');
+      } else if (code.includes('not-found') || msg.includes('not-found')) {
+        setError(lang === 'bn'
+          ? 'ডিভাইসটি খুঁজে পাওয়া যায়নি। Device ID সঠিক কিনা নিশ্চিত করুন এবং ডিভাইসটি WiFi-এ সংযুক্ত হয়েছে কিনা দেখুন।'
+          : 'Device not found. Ensure the Device ID is correct and the device has connected to WiFi at least once.');
+      } else if (code.includes('permission-denied') || msg.includes('permission_denied')) {
+        setError(lang === 'bn'
+          ? 'অনুমতি নেই। আপনার অ্যাকাউন্টে লগইন করা আছে কিনা নিশ্চিত করুন।'
+          : 'Permission denied. Make sure you are logged in.');
+      } else if (code.includes('unauthenticated')) {
+        setError(lang === 'bn'
+          ? 'আপনি লগইন করা নেই। অনুগ্রহ করে প্রথমে লগইন করুন।'
+          : 'You are not signed in. Please log in and try again.');
+      } else if (code.includes('internal')) {
+        setError(lang === 'bn'
+          ? 'সার্ভারে সমস্যা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।'
+          : 'A server error occurred. Please try again in a moment.');
       } else {
-        setError(lang === 'bn' ? `দুঃখিত, কোনো সমস্যা হয়েছে: ${err.message}` : `Something went wrong: ${err.message}`);
+        setError(lang === 'bn' ? `সমস্যা হয়েছে: ${msg}` : `Something went wrong: ${msg}`);
       }
     } finally {
       setLoading(false);
@@ -291,42 +329,55 @@ export default function PairDevice() {
     );
   }
 
+  const deviceType = detectDeviceType(code);
+  const isSH = deviceType === 'sh';
+  const isSP = deviceType === 'sp';
+
+  // Dynamic branding based on typed code prefix
+  const brand = {
+    icon:  isSH ? '🏠' : isSP ? '🔌' : '📱',
+    name:  isSH
+      ? (lang === 'bn' ? 'স্মার্ট হোম' : 'Smart Home')
+      : isSP
+        ? (lang === 'bn' ? 'স্মার্ট মাল্টি-প্লাগ' : 'Smart Multi-Plug')
+        : (lang === 'bn' ? 'স্মার্ট ডিভাইস' : 'Smart Device'),
+    step1: isSH
+      ? (lang === 'bn' ? 'আপনার Smart Home ডিভাইসটি পাওয়ার অন করুন' : 'Power on your Smart Home device')
+      : (lang === 'bn' ? 'আপনার Smart Multi-Plug চালু করুন' : 'Power on your Smart Multi-Plug'),
+    step2: isSH
+      ? (lang === 'bn' ? 'ডিভাইসের WiFi Setup পেজে Device ID দেখুন' : 'Find the Device ID on the WiFi setup page')
+      : (lang === 'bn' ? 'প্লাগের স্ক্রিনে বা স্টিকারে Device ID দেখুন' : 'Find the Device ID on the screen or sticker'),
+    placeholder: isSH ? 'SH4gfd-XXXXXXXX' : isSP ? 'SP4-XXXXXXXX' : 'SHx / SPx-XXXXXXXX',
+    subtitle: isSH
+      ? (lang === 'bn' ? 'WiFi Setup পেজে বা ডিভাইসের স্টিকারে থাকা Device ID টাইপ করুন।' : "Enter the Device ID shown on your device's WiFi setup page or casing sticker.")
+      : isSP
+        ? (lang === 'bn' ? 'স্ক্রিনে বা স্টিকারে থাকা Device ID টাইপ করুন।' : "Enter the Device ID shown on your device's screen or casing sticker.")
+        : (lang === 'bn' ? 'ডিভাইস আইডি টাইপ করতে শুরু করুন — SH (Smart Home) অথবা SP (Smart Multi-Plug)।' : 'Start typing your Device ID — SH for Smart Home or SP for Smart Multi-Plug.'),
+  };
+
   return (
     <div className="pair-page">
       <div className="bg-mesh" />
 
       <div className="pair-card">
-        <div className="pair-icon">🔌</div>
+        {/* Dynamic icon with smooth transition hint */}
+        <div className="pair-icon" style={{ transition: 'all 0.25s' }}>{brand.icon}</div>
 
-        <p style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}>
-          {t('pair_title')}
+        <p style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', marginBottom: 4 }}>
+          {brand.name}
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--clr-accent)', fontWeight: 600, textAlign: 'center', marginBottom: 8, letterSpacing: '0.04em', transition: 'opacity 0.2s', opacity: deviceType ? 1 : 0 }}>
+          {isSH ? 'SH ·' : isSP ? 'SP ·' : ''} {lang === 'bn' ? 'ডিভাইস শনাক্ত হয়েছে' : 'Device type detected'}
         </p>
         <p style={{ fontSize: 14, color: 'var(--clr-text-muted)', textAlign: 'center', marginBottom: 28, lineHeight: 1.6 }}>
-          {lang === 'bn'
-            ? 'প্লাগের স্ক্রিনে অথবা স্টিকারে থাকা ডিভাইস আইডিটি সংগ্রহ করে নিচে টাইপ করুন।'
-            : 'Find the Device ID on your device\'s screen or casing and enter it below.'}
+          {brand.subtitle}
         </p>
 
         {/* Steps */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
-          <Step
-            n={1}
-            label={lang === 'bn' ? 'আপনার স্মার্ট মাল্টি-প্লাগটি চালু করুন' : 'Power on your Smart Multi-Plug'}
-            active={true}
-            done={false}
-          />
-          <Step
-            n={2}
-            label={lang === 'bn' ? 'স্ক্রিনে বা বডিতে থাকা ডিভাইস আইডিটি (Device ID) দেখুন' : 'Find the Device ID on the screen or casing'}
-            active={true}
-            done={false}
-          />
-          <Step
-            n={3}
-            label={lang === 'bn' ? 'নিচের বক্সে ডিভাইস আইডিটি লিখুন' : 'Enter the Device ID below'}
-            active={true}
-            done={false}
-          />
+          <Step n={1} label={brand.step1} active={true} done={false} />
+          <Step n={2} label={brand.step2} active={true} done={false} />
+          <Step n={3} label={lang === 'bn' ? 'নিচের বক্সে Device ID লিখুন' : 'Enter the Device ID below'} active={true} done={false} />
         </div>
 
         <form onSubmit={handlePair}>
@@ -336,10 +387,10 @@ export default function PairDevice() {
               id="pair-code"
               type="text"
               className={`form-input pair-code-input ${error ? 'error' : ''}`}
-              placeholder="SPX-XXXXXXXX"
+              placeholder={brand.placeholder}
               value={code}
               onChange={handleInput}
-              maxLength={12}
+              maxLength={15}
               autoCorrect="off"
               autoCapitalize="characters"
               spellCheck={false}

@@ -1,0 +1,81 @@
+{
+  "devices": {
+    "SH4gfd-A1B2C3D4": {
+      "secret": "sec-481729563847",
+      "claimed_by": "7DwcwVZkpcV6Nu04GDVEVO37bxI3",
+      "claimed_at": 1755432000000,
+      "plugs": 4,
+      "sensors": {
+        "dht11": true,
+        "gas": true,
+        "flame": true
+      },
+      "shared_members": {
+        "demo_guest_uid_002": {
+          "email": "guest@example.com",
+          "name": "Family Member",
+          "shared_at": 1755435600000
+        }
+      }
+    }
+  },
+  "users": {
+    "7DwcwVZkpcV6Nu04GDVEVO37bxI3": {
+      "devices": {
+        "SH4gfd-A1B2C3D4": {
+          "name": "Living Room Hub",
+          "paired_at": 1755432000000,
+          "plugs": {
+            "1": {
+              "label": "Main Light"
+            },
+            "2": {
+              "label": "AC Unit"
+            },
+            "3": {
+              "label": "TV"
+            },
+            "4": {
+              "label": "Fan"
+            }
+          },
+          "schedules": {
+            "-NxDemoSchedule001": {
+              "plugNum": 1,
+              "plugLabel": "Main Light",
+              "action": "OFF",
+              "time": "23:00",
+              "repeat": "daily",
+              "days": "all",
+              "enabled": true,
+              "createdAt": 1755432000000,
+              "type": "schedule"
+            },
+            "-NxDemoSchedule002": {
+              "plugNum": 1,
+              "plugLabel": "Main Light",
+              "action": "ON",
+              "time": "06:30",
+              "repeat": "daily",
+              "days": "all",
+              "enabled": true,
+              "createdAt": 1755432000000,
+              "type": "schedule"
+            },
+            "-NxDemoSchedule003": {
+              "plugNum": 3,
+              "plugLabel": "TV",
+              "action": "OFF",
+              "time": "22:30",
+              "repeat": "daily",
+              "days": "all",
+              "enabled": true,
+              "createdAt": 1755432000000,
+              "type": "schedule"
+            }
+          }
+        }
+      }
+    }
+  }
+}

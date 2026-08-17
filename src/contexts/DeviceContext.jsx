@@ -19,9 +19,26 @@ export function DeviceProvider({ children }) {
   });
 
   const getNumPlugsFromId = (id) => {
-    if (id?.startsWith('SP2-')) return 2;
-    if (id?.startsWith('SP3-')) return 3;
-    return 4; // default
+    // New format: SH{plugs}{sensors}-XXXXXXXX  e.g. SH2-..., SH3d-..., SH4gfd-...
+    if (!id) return 4;
+    const m = id.match(/^SH([234])/i);
+    if (m) return parseInt(m[1], 10);
+    // Legacy fallback
+    if (id.startsWith('SP2-')) return 2;
+    if (id.startsWith('SP3-')) return 3;
+    return 4;
+  };
+
+  // Parse enabled sensors from device ID prefix (e.g. SH4gfd -> {gas:true, flame:true, dht11:true})
+  const getSensorsFromId = (id) => {
+    if (!id) return { gas: false, flame: false, dht11: false };
+    const m = id.match(/^SH[234]([GFDgfd]*)(?:-|$)/i);
+    const suffix = m?.[1] ?? '';
+    return {
+      gas:   suffix.toLowerCase().includes('g'),
+      flame: suffix.toLowerCase().includes('f'),
+      dht11: suffix.toLowerCase().includes('d'),
+    };
   };
 
   const numPlugs = activeDeviceId ? getNumPlugsFromId(activeDeviceId) : 4;
@@ -238,6 +255,8 @@ export function DeviceProvider({ children }) {
 
   const device = devices && activeDeviceId ? devices.find(d => d.id === activeDeviceId) : null;
 
+  const deviceSensors = getSensorsFromId(activeDeviceId);
+
   const value = {
     devices: devices || [],
     device: activeDeviceConfig || device, // use config node details first
@@ -248,6 +267,7 @@ export function DeviceProvider({ children }) {
     clearDevice,
     selectDevice,
     numPlugs,
+    deviceSensors,
     loading: devices === undefined || (devices.length > 0 && !!activeDeviceId && activeDeviceConfig === undefined),
     hasPairedDevice: devices !== null && devices !== undefined && devices.length > 0,
   };
