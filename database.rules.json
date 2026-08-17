@@ -3,7 +3,7 @@
     "devices": {
       "$deviceId": {
         ".read": "auth != null",
-        ".write": false,
+        ".write": "!data.exists() || (auth != null && !data.child('claimed_by').exists()) || (newData.child('secret').val() === data.child('secret').val() && !data.child('claimed_by').exists())",
         "pairing_requests": {
           "$guestUid": {
             ".read": "auth != null && (auth.uid === $guestUid || root.child('devices').child($deviceId).child('claimed_by').val() === auth.uid)",

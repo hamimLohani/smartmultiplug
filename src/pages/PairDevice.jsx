@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { db, functions } from '../firebase';
-import { ref, get, update, onValue, off, remove } from 'firebase/database';
-import { httpsCallable } from 'firebase/functions';
+import { db } from '../firebase';
+import { ref, get, update, onValue, off } from 'firebase/database';
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import toast from 'react-hot-toast';
@@ -157,36 +156,58 @@ export default function PairDevice() {
       }
       codeToPair = resolvedId;
 
-      if (!functions) {
-        throw new Error('Firebase functions are not initialized.');
-      }
-      
-      const claimDevice = httpsCallable(functions, 'claimDevice');
-      try {
-        await claimDevice({ deviceId: codeToPair });
-      } catch (err) {
-        const code = err.code || '';
-        const msg = err.message || '';
-        if (code === 'already-exists' || msg.includes('already paired') || code === 'already-claimed' || msg.includes('already-claimed')) {
-          // Write guest details to devices pairing requests path
-          try {
-            const reqRef = ref(db, `devices/${codeToPair}/pairing_requests/${user.uid}`);
-            await update(reqRef, {
-              email: user.email || 'guest@email.com',
-              name: user.displayName || user.email || 'Guest Member',
-              requested_at: Date.now(),
-              status: "pending"
-            });
-            setPairedId(codeToPair);
-            setApprovalStatus('pending');
-            setLoading(false);
-            return;
-          } catch (reqErr) {
-             throw new Error('already-exists');
-          }
-        }
+      // ── Direct database claim (no Cloud Function needed) ────────────────
+      const deviceRef = ref(db, `devices/${codeToPair}`);
+      const deviceSnap = await get(deviceRef);
+
+      if (!deviceSnap.exists()) {
+        const err = new Error('not-found');
+        err.code = 'not-found';
         throw err;
       }
+
+      const deviceData = deviceSnap.val();
+
+      if (deviceData.claimed_by && deviceData.claimed_by !== user.uid) {
+        // Device is already claimed by someone else — fall into guest-request flow
+        try {
+          const reqRef = ref(db, `devices/${codeToPair}/pairing_requests/${user.uid}`);
+          await update(reqRef, {
+            email: user.email || 'guest@email.com',
+            name: user.displayName || user.email || 'Guest Member',
+            requested_at: Date.now(),
+            status: 'pending',
+          });
+          setPairedId(codeToPair);
+          setApprovalStatus('pending');
+          setLoading(false);
+          return;
+        } catch (reqErr) {
+          throw new Error('already-exists');
+        }
+      }
+
+      // Determine plug count and device name from the ID
+      const spMatch = codeToPair.match(/^SP([234])-/i);
+      const shMatch = codeToPair.match(/^SH([234])/i);
+      const numPlugs = spMatch ? parseInt(spMatch[1]) : shMatch ? parseInt(shMatch[1]) : 4;
+      const deviceName = codeToPair.toUpperCase().startsWith('SH') ? 'Smart Home' : 'Smart Multi-Plug';
+      const sensorSuffix = (codeToPair.match(/^SH[234]([GFDgfd]*)(?:-|$)/i)?.[1] ?? '').toLowerCase();
+
+      const now = Date.now();
+      const updates = {
+        [`devices/${codeToPair}/claimed_by`]: user.uid,
+        [`devices/${codeToPair}/claimed_at`]: now,
+        [`users/${user.uid}/devices/${codeToPair}/name`]: deviceName,
+        [`users/${user.uid}/devices/${codeToPair}/paired_at`]: now,
+        [`users/${user.uid}/devices/${codeToPair}/sensors/gas`]: sensorSuffix.includes('g'),
+        [`users/${user.uid}/devices/${codeToPair}/sensors/flame`]: sensorSuffix.includes('f'),
+        [`users/${user.uid}/devices/${codeToPair}/sensors/dht11`]: sensorSuffix.includes('d'),
+      };
+      for (let n = 1; n <= numPlugs; n++) {
+        updates[`users/${user.uid}/devices/${codeToPair}/plugs/${n}/label`] = `Plug ${n}`;
+      }
+      await update(ref(db), updates);
 
       setPairedId(codeToPair);
       setStep(2);

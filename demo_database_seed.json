@@ -1,5 +1,15 @@
 {
   "devices": {
+    "sp4-0058-0833": {
+      "secret": "sec-0058-0833",
+      "claimed_by": null,
+      "plugs": 4,
+      "sensors": {
+        "dht11": false,
+        "gas": false,
+        "flame": false
+      }
+    },
     "SH4gfd-A1B2C3D4": {
       "secret": "sec-481729563847",
       "claimed_by": "7DwcwVZkpcV6Nu04GDVEVO37bxI3",
