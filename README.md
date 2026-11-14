@@ -1,6 +1,8 @@
 # Smart Multi-Plug — Web Dashboard
 
-A production-grade web application for controlling a WiFi-enabled smart power strip (ESP8266-based). Built with **React + Vite**, **Firebase Auth + Realtime Database**, and **MQTT over WebSockets**.
+[![Smart Multi-Plug Demo](https://img.youtube.com/vi/S4y2Y5nRX88/maxresdefault.jpg)](https://youtu.be/S4y2Y5nRX88?si=wG9PPGMmeDoYeQaE)
+
+A production-grade web application for controlling a WiFi-enabled smart power strip (ESP8266-based). Built with **React + Vite**, **Firebase Auth + Realtime Database**, and **MQTT over WebSockets**[...]
 
 ---
 
@@ -142,7 +144,7 @@ The owner can view all active shared guest Gmail addresses in the **Shared Membe
 
 ### MQTT Credentials (known tradeoff)
 
-Currently the app uses static MQTT credentials stored in environment variables (`VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD`). Because Vite bundles these into the client-side JavaScript, they are visible to anyone who inspects the page source.
+Currently the app uses static MQTT credentials stored in environment variables (`VITE_MQTT_USERNAME` / `VITE_MQTT_PASSWORD`). Because Vite bundles these into the client-side JavaScript, they are exposed to the browser.
 
 **Acceptable for MVP** because:
 - Credentials are scoped to a single read/write user (not broker admin)
